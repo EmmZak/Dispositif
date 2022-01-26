@@ -7,6 +7,7 @@ import android.util.Log
 import android.view.View
 import androidx.core.app.ActivityCompat
 import android.Manifest
+import android.R.attr
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
@@ -21,29 +22,48 @@ import java.time.LocalDateTime
 import android.telecom.TelecomManager
 import android.content.ComponentName
 import android.os.Build
+import android.speech.tts.TextToSpeech
+import android.speech.tts.Voice
+import android.widget.Toast
+import com.app.app.service.CallService
 import com.app.app.service.SmsService
+import com.app.app.utils.TTS
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import android.view.Gravity
 
+import android.widget.TextView
+import android.R.attr.duration
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     val number = "0766006439"
     val SENDING = false
 
-    val BUILT_IN_CALL = false
+    val BUILT_IN_CALL = true
     var db = FirebaseFirestore.getInstance()
     val TAG = "manu"
     var i = 0
     var configListener: ListenerRegistration? = null
+    var notifListener: ListenerRegistration? = null
+
+    var tts: TextToSpeech? = null
 
     // services
     val smsService = SmsService(this)
+    val callService = CallService(this)
+    val ttsService = TTS(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.e(TAG, "On create triggered")
         setContentView(R.layout.activity_main)
+
+        tts = TextToSpeech(this, this)
+        Log.e(TAG, "default engine ${tts!!.defaultEngine}")
+        val voice = Voice("en-us-x-sfg#male_2-local", Locale.US, Voice.QUALITY_VERY_HIGH, Voice.LATENCY_NORMAL, false, null)
+        tts!!.setVoice(voice)
+        Log.e(TAG, "tts voice ${tts!!.voice}")
 
         //Log.e(TAG, "ON CREATE configLisntener $configListener")
         // setup real time listener
@@ -55,17 +75,30 @@ class MainActivity : AppCompatActivity() {
             }
             i += 1
             if (snapshot != null && snapshot.exists()) {
-                Log.d(TAG, "app1: listener($i): ${snapshot.data}")
+                Log.d(TAG, "config1: listener: ${snapshot.data}")
             } else {
                 Log.d(TAG, "Current data: null")
             }
         }
 
+        notifListener = db.collection("apps").document("app1").addSnapshotListener { snapshot, e ->
+            if (e != null) {
+                Log.w(TAG, "Listen failed.", e)
+                return@addSnapshotListener
+            }
+            i += 1
+            if (snapshot != null && snapshot.exists()) {
+                Log.d(TAG, "app1: listener: ${snapshot.data}")
+                val message = snapshot.data?.get("message")
+                tts!!.speak(message as CharSequence?, TextToSpeech.QUEUE_FLUSH, null, "")
+            } else {
+                Log.d(TAG, "Current data: null")
+            }
+        }
     }
 
     override fun onStart() {
         super.onStart()
-
         Log.e(TAG, "On start triggered")
     }
 
@@ -73,10 +106,12 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         Log.d(TAG, "on destroy Removing snapshot")
         configListener?.remove()
+        notifListener?.remove()
     }
 
     override fun onStop() {
         super.onStop()
+        notifListener?.remove()
         configListener?.remove()
         Log.e(TAG, "On stop triggered")
     }
@@ -87,53 +122,44 @@ class MainActivity : AppCompatActivity() {
 
     fun sendOk(view: View) {
         Log.e("manu", "send OK")
-        smsService.sendSms(number, "Salut, tout va bien")
+        sendSms(number, "Salut, tout va bien")
     }
 
     fun sendKo(view: View) {
         Log.e("manu", "send KO")
-        smsService.sendSms(number, "Salut, j'ai un petit souci")
+        sendSms(number, "Salut, j'ai un petit souci")
+    }
+
+    fun sendSOS(view: View) {
+        Log.e("manu", "send SOS")
+        sendSms(number, "Alerte SOS \n Mme Dupont, localisation suivante : 12 rue de l'Yser, Raismes 59590")
+    }
+
+    fun sendSms(number: String, text: String) {
+        var message = ""
+        try {
+            smsService.sendSms(number, text)
+            message = "Notification envoyée"
+        } catch(e: Exception) {
+            message = "Erreur lors de l'envoi"
+        }
+        val toast = Toast.makeText(this, message, Toast.LENGTH_LONG)
+        toast.show()
+    }
+
+    fun speak(view: View) {
+        val bundle = Bundle()
+        bundle.putInt("quality", Voice.QUALITY_VERY_HIGH)
+        //bundle.putBoolean("", "")
+        tts!!.speak("manu N'oubliez pas, de prendre vos médicaments, à 15 heures", TextToSpeech.QUEUE_FLUSH, bundle, "")
     }
 
     @SuppressLint("MissingPermission")
     fun call(view: View) {
-        Log.e("manu", "call")
-        if (!isCallPermissionGranted()) {
-            Log.e("manu", "call permission not granted")
-            try {
-                requestCallPermission()
-            } catch(e: Exception) {
-                Log.e("manu", "$e")
-            }
+        if (BUILT_IN_CALL) {
+            callService.nativeCall(number)
         } else {
-            Log.e("manu", "call permission OK")
-            try {
-                if (BUILT_IN_CALL) {
-                    val dialIntent = Intent(Intent.ACTION_CALL)
-                    dialIntent.data = Uri.parse("tel:$number")
-                    startActivity(dialIntent)
-                } else {
-                    val tm = this.getSystemService(TELECOM_SERVICE) as TelecomManager
-
-                    val accountHandle = getAccountHandle()
-                    var phoneAccount: PhoneAccount
-
-                    val builder = PhoneAccount.builder(accountHandle, BuildConfig.APPLICATION_ID)
-                    builder.setCapabilities(PhoneAccount.CAPABILITY_SELF_MANAGED)
-
-                    phoneAccount = builder.build()
-                    tm.registerPhoneAccount(phoneAccount)
-
-                    Log.e("manu", "tm call ")
-                    val uri = Uri.fromParts("tel", "$number", null)
-                    val extras = Bundle()
-                    extras.putBoolean(TelecomManager.EXTRA_START_CALL_WITH_SPEAKERPHONE, true)
-                    extras.putParcelable(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, getAccountHandle());
-                    tm.placeCall(uri, extras)
-                }
-            } catch(e: Exception) {
-                Log.e("tm call catch", "${e.toString()}")
-            }
+            // call
         }
     }
 
@@ -143,15 +169,17 @@ class MainActivity : AppCompatActivity() {
         return PhoneAccountHandle(componentName, phoneAccountLabel)
     }
 
-    /*
-     Request permissions
-     */
-    fun isCallPermissionGranted(): Boolean {
-        return ActivityCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            // set US English as language for tts
+            val result = tts!!.setLanguage(Locale.FRENCH)
+
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                Log.e(TAG,"The Language specified is not supported!")
+            }
+        } else {
+            Log.e(TAG, "Initilization Failed!")
+        }
     }
 
-    fun requestCallPermission() {
-        val requestCall: Int = 1
-        ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CALL_PHONE), requestCall)
-    }
 }

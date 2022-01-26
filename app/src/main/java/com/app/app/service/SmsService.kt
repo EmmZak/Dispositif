@@ -17,23 +17,14 @@ class SmsService(val context: Context) {
     val SENDING = false
     val TAG = "SmsService manu"
 
-    fun isSmsPermissionGranted(): Boolean {
-        return ActivityCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED
-    }
-
-    fun requestSmsPermission() {
-        val requestSendSms: Int = 2
-        ActivityCompat.requestPermissions(context as Activity, arrayOf(Manifest.permission.SEND_SMS), requestSendSms)
-    }
-
     fun sendSms(number: String, message: String) {
         if (!isSmsPermissionGranted()) {
             try {
                 requestSmsPermission()
             } catch(e: Exception) {
                 Log.e(TAG, "PERMISSION.exception ${e.toString()}")
+                throw e
             }
-            return;
         }
         Log.e(TAG, "sms permission OK")
         try {
@@ -43,6 +34,16 @@ class SmsService(val context: Context) {
             SmsManager.getDefault().sendTextMessage(number, null, finalMessage, null, null)
         } catch(e: Exception) {
             Log.e("manu", "SEND.exception ${e.toString()}")
+            throw e
         }
+    }
+
+    private fun isSmsPermissionGranted(): Boolean {
+        return ActivityCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun requestSmsPermission() {
+        val requestSendSms: Int = 2
+        ActivityCompat.requestPermissions(context as Activity, arrayOf(Manifest.permission.SEND_SMS), requestSendSms)
     }
 }
