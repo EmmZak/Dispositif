@@ -8,11 +8,13 @@ import android.util.Log
 
 class MyConnectionService() : ConnectionService() {
 
+    val TAG = "MyConnectionService manu"
+
     override fun onCreateOutgoingConnection(
         connectionManagerPhoneAccount: PhoneAccountHandle?,
         request: ConnectionRequest?
     ): Connection {
-        Log.e("manu", "onCreateOutgoingConnection")
+        Log.e(TAG, "onCreateOutgoingConnection")
         //val con = super.onCreateOutgoingConnection(connectionManagerPhoneAccount, request)
         val con = MyConnection()
         return con
@@ -29,7 +31,7 @@ class MyConnectionService() : ConnectionService() {
         connectionManagerPhoneAccount: PhoneAccountHandle?,
         request: ConnectionRequest?
     ): Connection {
-        Log.e("manu", "onCreateIncomingConnection")
+        Log.e(TAG, "onCreateIncomingConnection")
         return super.onCreateIncomingConnection(connectionManagerPhoneAccount, request)
     }
 }

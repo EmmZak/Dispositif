@@ -5,20 +5,22 @@ import android.util.Log
 
 class MyConnection: Connection {
 
+    val TAG = "MyConnection manu"
+
     constructor() {
-        Log.e("manu", "creating MyConnetion")
+        Log.e(TAG, "creating MyConnetion")
         super.setConnectionProperties(Connection.PROPERTY_SELF_MANAGED)
     }
 
     override fun onShowIncomingCallUi() {
-        Log.e("manu", "onShowIncomingCallUi")
+        Log.e(TAG, "onShowIncomingCallUi")
     }
 
     override fun onAnswer() {
-        Log.e("manu", "onAnswer")
+        Log.e(TAG, "onAnswer")
     }
 
     override fun onDisconnect() {
-        Log.e("manu", "onDisconnect")
+        Log.e(TAG, "onDisconnect")
     }
 }

@@ -7,19 +7,11 @@ import android.util.Log
 import android.view.View
 import androidx.core.app.ActivityCompat
 import android.Manifest
-import android.R.attr
 import android.annotation.SuppressLint
-import android.content.Intent
-import android.net.Uri
-import android.telecom.PhoneAccount
+import android.app.Activity
 import android.telecom.PhoneAccountHandle
-import android.telephony.SmsManager
 import java.lang.Exception
-import java.time.format.DateTimeFormatter
 import java.util.*
-import java.time.LocalDate
-import java.time.LocalDateTime
-import android.telecom.TelecomManager
 import android.content.ComponentName
 import android.os.Build
 import android.speech.tts.TextToSpeech
@@ -30,10 +22,20 @@ import com.app.app.service.SmsService
 import com.app.app.utils.TTS
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
-import android.view.Gravity
 
-import android.widget.TextView
-import android.R.attr.duration
+import android.media.MediaRecorder
+import androidx.annotation.RequiresApi
+import com.app.app.databinding.ActivityMainBinding
+import com.app.app.dialog.AudioRecordingDialog
+import java.io.File
+import java.io.IOException
+
+import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.ThreadMode
+import org.greenrobot.eventbus.Subscribe
+import androidx.databinding.DataBindingUtil
+import com.app.app.service.FCMMessage
+
 
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
@@ -47,12 +49,18 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     var configListener: ListenerRegistration? = null
     var notifListener: ListenerRegistration? = null
 
+    // audio recording
+    var isRecording = false
+    var recorder: MediaRecorder? = null
+    var filename : String = ""
+    val pop = AudioRecordingDialog()
+
     var tts: TextToSpeech? = null
 
     // services
     val smsService = SmsService(this)
     val callService = CallService(this)
-    val ttsService = TTS(this)
+    //val ttsService = TTS(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,41 +73,27 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         tts!!.setVoice(voice)
         Log.e(TAG, "tts voice ${tts!!.voice}")
 
-        //Log.e(TAG, "ON CREATE configLisntener $configListener")
-        // setup real time listener
-        Log.e(TAG, "CREATING a listener for config")
-        configListener = db.collection("apps").document("config1").addSnapshotListener { snapshot, e ->
-            if (e != null) {
-                Log.w(TAG, "Listen failed.", e)
-                return@addSnapshotListener
-            }
-            i += 1
-            if (snapshot != null && snapshot.exists()) {
-                Log.d(TAG, "config1: listener: ${snapshot.data}")
-            } else {
-                Log.d(TAG, "Current data: null")
-            }
+        // audio recording
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(
+                Manifest.permission.RECORD_AUDIO,
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE), 0);
         }
+        filename = "${externalCacheDir?.absolutePath}/vocal.3gp"
 
-        notifListener = db.collection("apps").document("app1").addSnapshotListener { snapshot, e ->
-            if (e != null) {
-                Log.w(TAG, "Listen failed.", e)
-                return@addSnapshotListener
-            }
-            i += 1
-            if (snapshot != null && snapshot.exists()) {
-                Log.d(TAG, "app1: listener: ${snapshot.data}")
-                val message = snapshot.data?.get("message")
-                tts!!.speak(message as CharSequence?, TextToSpeech.QUEUE_FLUSH, null, "")
-            } else {
-                Log.d(TAG, "Current data: null")
-            }
-        }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onMessageEvent(message: String) {
+        Log.e(TAG, "received event $message")
+        tts!!.speak(message, TextToSpeech.QUEUE_FLUSH, null, "")
     }
 
     override fun onStart() {
         super.onStart()
         Log.e(TAG, "On start triggered")
+        EventBus.getDefault().register(this);
     }
 
     override fun onDestroy() {
@@ -113,6 +107,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         super.onStop()
         notifListener?.remove()
         configListener?.remove()
+        recorder?.release()
+        recorder = null
+        EventBus.getDefault().unregister(this);
         Log.e(TAG, "On stop triggered")
     }
 
@@ -159,9 +156,56 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         if (BUILT_IN_CALL) {
             callService.nativeCall(number)
         } else {
-            // call
+            Log.e(TAG, "custom call")
+            callService.call(number)
         }
     }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    fun record(view: View) {
+        if (!isRecording) {
+            isRecording = true
+            startRecording()
+        } else {
+            isRecording = false
+            stopRecording()
+        }
+    }
+
+    fun startRecording() {
+        Log.e(TAG, "start recording")
+        recorder = MediaRecorder().apply {
+            setAudioSource(MediaRecorder.AudioSource.MIC)
+            setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
+            setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
+            setOutputFile(filename)
+
+            try {
+                prepare()
+            } catch (e: IOException) {
+                Log.e(TAG, "prepare() failed")
+            }
+            start()
+        }
+    }
+
+    fun stopRecording() {
+        Log.e(TAG, "stop recording")
+        recorder?.apply {
+            stop()
+            reset()
+            release()
+        }
+        recorder = null
+
+        try {
+            smsService.sendMms(number)
+        } catch(e: Exception) {
+            Log.e(TAG, "$e")
+        }
+    }
+    // check audio permission
+
 
     private fun getAccountHandle(): PhoneAccountHandle? {
         val phoneAccountLabel = BuildConfig.APPLICATION_ID

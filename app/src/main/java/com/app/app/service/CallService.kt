@@ -26,10 +26,10 @@ class CallService(val context: Context) {
     val TAG = "CallService manu"
 
     @SuppressLint("MissingPermission")
-/*    fun call(number: String) {
+    fun call(number: String) {
         val tm = context.getSystemService(AppCompatActivity.TELECOM_SERVICE) as TelecomManager
 
-        val accountHandle = context.getAccountHandle()
+        val accountHandle = getAccountHandle()
         var phoneAccount: PhoneAccount
 
         val builder = PhoneAccount.builder(accountHandle, BuildConfig.APPLICATION_ID)
@@ -38,19 +38,19 @@ class CallService(val context: Context) {
         phoneAccount = builder.build()
         tm.registerPhoneAccount(phoneAccount)
 
-        Log.e("manu", "tm call ")
+        Log.e(TAG, "tm call $number")
         val uri = Uri.fromParts("tel", "$number", null)
         val extras = Bundle()
         extras.putBoolean(TelecomManager.EXTRA_START_CALL_WITH_SPEAKERPHONE, true)
         extras.putParcelable(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, getAccountHandle());
         tm.placeCall(uri, extras)
-    }*/
+    }
 
-/*    private fun getAccountHandle(): PhoneAccountHandle? {
+    private fun getAccountHandle(): PhoneAccountHandle? {
         val phoneAccountLabel = BuildConfig.APPLICATION_ID
-        val componentName = ComponentName(this, MyConnectionService::class.java)
+        val componentName = ComponentName(context, MyConnectionService::class.java)
         return PhoneAccountHandle(componentName, phoneAccountLabel)
-    }*/
+    }
 
     fun nativeCall(number: String) {
         if (!isCallPermissionGranted()) {
