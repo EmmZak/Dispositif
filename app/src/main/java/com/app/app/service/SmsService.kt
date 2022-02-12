@@ -16,7 +16,6 @@ import java.lang.Exception
 
 class SmsService(val context: Context) {
 
-    val number = "0766006439"
     val SENDING = false
     val TAG = "SmsService manu"
 
@@ -41,7 +40,30 @@ class SmsService(val context: Context) {
         }
     }
 
-    fun sendMms(number: String) {
+    fun sendSms(numbers: Array<String>, message: String) {
+        if (!isSmsPermissionGranted()) {
+            try {
+                requestSmsPermission()
+            } catch(e: Exception) {
+                Log.e(TAG, "PERMISSION.exception ${e.toString()}")
+                throw e
+            }
+        }
+        Log.e(TAG, "sms permission OK")
+        try {
+            val finalMessage = "[${Utils.getFormattedDateTime()}] $message"
+
+            Log.e(TAG, "$finalMessage")
+            for(number in numbers) {
+                SmsManager.getDefault().sendTextMessage(number, null, finalMessage, null, null)
+            }
+        } catch(e: Exception) {
+            Log.e(TAG, "SEND.exception ${e.toString()}")
+            throw e
+        }
+    }
+
+    fun sendMms(number: String, OUTPUT_DIR: String, FILE_NAME: String) {
         if (!isSmsPermissionGranted()) {
             try {
                 requestSmsPermission()
@@ -52,19 +74,20 @@ class SmsService(val context: Context) {
         }
         Log.e(TAG, "sms permission OK")
 
-        File("${context.externalCacheDir?.absolutePath}").walk().forEach {
+        File("$OUTPUT_DIR").walk().forEach {
             Log.e(TAG, "$it")
         }
 
         try {
-            val audioFile: File? = File("${context.externalCacheDir?.absolutePath}", "vocal.3gp")
+            val audioFile: File? = File("$OUTPUT_DIR", "$FILE_NAME")
 
             val finalMessage = "[${Utils.getFormattedDateTime()}]"
 
             Log.e(TAG, "message $finalMessage")
 
-            val uri : Uri? = Uri.parse("file://"+"${context.externalCacheDir?.absolutePath}"+"/vocal.3gp")
+            val uri : Uri? = Uri.parse("file://$OUTPUT_DIR/$FILE_NAME")
             Log.e(TAG, "uri ${uri.toString()}")
+
             SmsManager.getDefault().sendMultimediaMessage(context, uri, null, null, null)
         } catch(e: Exception) {
             Log.e(TAG, "SEND.exception ${e.toString()}")
@@ -73,6 +96,7 @@ class SmsService(val context: Context) {
     }
 
     // helper funcions
+
     fun buildPdu(context: Context, number: String, subject: String, text: String) {
 
     }

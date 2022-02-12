@@ -2,44 +2,50 @@ package com.app.app
 
 import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
-import android.os.Bundle
 import android.util.Log
 import android.view.View
 import androidx.core.app.ActivityCompat
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.telecom.PhoneAccountHandle
 import java.lang.Exception
 import java.util.*
 import android.content.ComponentName
-import android.os.Build
+import android.content.Context
+import android.graphics.Color
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
 import android.widget.Toast
-import com.app.app.service.CallService
+import com.app.app.service.call.CallService
 import com.app.app.service.SmsService
-import com.app.app.utils.TTS
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 
 import android.media.MediaRecorder
 import androidx.annotation.RequiresApi
-import com.app.app.databinding.ActivityMainBinding
 import com.app.app.dialog.AudioRecordingDialog
-import java.io.File
 import java.io.IOException
 
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.ThreadMode
 import org.greenrobot.eventbus.Subscribe
-import androidx.databinding.DataBindingUtil
-import com.app.app.service.FCMMessage
+
+import android.os.*
+import android.widget.ImageView
+import android.content.Intent
+
+import android.telecom.TelecomManager
+import androidx.core.content.PermissionChecker
+import androidx.core.net.toUri
+import com.app.app.service.call.OngoingCall
 
 
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
-    val number = "0766006439"
+    var number1 = "0766006439"
+    var number2 = "0621585966"
+    val numbers = arrayOf(number2, number1)
+
     val SENDING = false
 
     val BUILT_IN_CALL = true
@@ -52,14 +58,15 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     // audio recording
     var isRecording = false
     var recorder: MediaRecorder? = null
-    var filename : String = ""
+    var FILE_NAME : String = ""
+    var OUTPUT_DIR : String = ""
     val pop = AudioRecordingDialog()
 
     var tts: TextToSpeech? = null
 
     // services
     val smsService = SmsService(this)
-    val callService = CallService(this)
+    val callService = CallService()
     //val ttsService = TTS(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,8 +87,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 Manifest.permission.READ_EXTERNAL_STORAGE,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE), 0);
         }
-        filename = "${externalCacheDir?.absolutePath}/vocal.3gp"
-
+        //filename = "${externalCacheDir?.absolutePath}/vocal.3gp"
+        FILE_NAME = "audio.3gp"
+        // Android/data/com.app.app/cache/audio.3gp
+        OUTPUT_DIR = externalCacheDir?.absolutePath.toString()
+        OUTPUT_DIR = getExternalFilesDir(null)?.absolutePath.toString()
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -92,7 +102,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onStart() {
         super.onStart()
-        Log.e(TAG, "On start triggered")
+        Log.e(TAG, "On start before replaceDefaultDialer")
+        offerReplacingDefaultDialer()
+        Log.e(TAG, "On start after replaceDefaultDialer")
+
         EventBus.getDefault().register(this);
     }
 
@@ -119,24 +132,30 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     fun sendOk(view: View) {
         Log.e("manu", "send OK")
-        sendSms(number, "Salut, tout va bien")
+        sendSms(numbers, "Salut, tout va bien")
     }
 
     fun sendKo(view: View) {
         Log.e("manu", "send KO")
-        sendSms(number, "Salut, j'ai un petit souci")
+        sendSms(numbers, "Salut, j'ai un petit souci")
     }
 
     fun sendSOS(view: View) {
         Log.e("manu", "send SOS")
-        sendSms(number, "Alerte SOS \n Mme Dupont, localisation suivante : 12 rue de l'Yser, Raismes 59590")
+        sendSms(numbers, "Alerte SOS \n Mme Dupont, localisation suivante : 12 rue de l'Yser, Raismes 59590")
     }
 
-    fun sendSms(number: String, text: String) {
+    fun sendSms(number: Array<String>, text: String) {
         var message = ""
         try {
             smsService.sendSms(number, text)
             message = "Notification envoyée"
+            val vibrator = this?.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            if (Build.VERSION.SDK_INT >= 26) {
+                vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                vibrator.vibrate(200)
+            }
         } catch(e: Exception) {
             message = "Erreur lors de l'envoi"
         }
@@ -153,32 +172,73 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     @SuppressLint("MissingPermission")
     fun call(view: View) {
-        if (BUILT_IN_CALL) {
-            callService.nativeCall(number)
+        Log.e(TAG, "call ")
+        if (PermissionChecker.checkSelfPermission(
+                this,
+                Manifest.permission.CALL_PHONE
+            ) == PermissionChecker.PERMISSION_GRANTED
+        ) {
+            val uri = "tel:0766006439".toUri()
+            Log.e(TAG, "starting ACTION CALL activiry wioth uri ${uri.toString()}")
+            startActivity(Intent(Intent.ACTION_CALL, uri))
+            openCallDialog(null)
         } else {
-            Log.e(TAG, "custom call")
-            callService.call(number)
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.CALL_PHONE),
+                REQUEST_PERMISSION
+            )
         }
+    }
+
+    fun stopCall(view: View) {
+        Log.e(TAG, "stopping call")
+        try {
+            OngoingCall.hangup()
+        } catch(e: Exception) {
+            Log.e(TAG, "$e")
+        }
+    }
+
+    fun openCallDialog(view: View?) {
+        Log.e(TAG, "open call dialog")
+        val dialog = CallDialog.newInstance("Emmanuel")
+        dialog.show(supportFragmentManager, "call dialog")
+    }
+
+    companion object {
+        const val REQUEST_PERMISSION = 0
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
     fun record(view: View) {
-        if (!isRecording) {
-            isRecording = true
-            startRecording()
-        } else {
+        Log.e(TAG, "into record")
+        if (isRecording) {
+            Log.e(TAG, "already recording !!!!")
+            return
+        }
+        val micro = findViewById<ImageView>(R.id.microView)
+        micro.setColorFilter(Color.BLUE)
+
+        Log.e(TAG, "starting recording ...")
+        startRecording()
+        isRecording = true
+
+        Handler().postDelayed({
+            Log.e(TAG, "stopped recording")
+            micro.setColorFilter(Color.DKGRAY)
             isRecording = false
             stopRecording()
-        }
+        }, 5000)
     }
 
     fun startRecording() {
-        Log.e(TAG, "start recording")
+        Log.e(TAG, "startRecording()")
         recorder = MediaRecorder().apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
             setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
             setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
-            setOutputFile(filename)
+            setOutputFile("$OUTPUT_DIR/$FILE_NAME")
 
             try {
                 prepare()
@@ -199,7 +259,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         recorder = null
 
         try {
-            smsService.sendMms(number)
+            smsService.sendMms(number1, OUTPUT_DIR, FILE_NAME)
         } catch(e: Exception) {
             Log.e(TAG, "$e")
         }
@@ -223,6 +283,23 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             }
         } else {
             Log.e(TAG, "Initilization Failed!")
+        }
+    }
+
+    private fun offerReplacingDefaultDialer() {
+        try {
+            Log.e(TAG, "before")
+            val default = getSystemService(TelecomManager::class.java).defaultDialerPackage
+            Log.e(TAG, "default vs package, $default vs $packageName")
+            if (default != packageName) {
+                Log.e(TAG, "inside")
+                Intent(TelecomManager.ACTION_CHANGE_DEFAULT_DIALER)
+                    .putExtra(TelecomManager.EXTRA_CHANGE_DEFAULT_DIALER_PACKAGE_NAME, packageName)
+                    .let(::startActivity)
+            }
+            Log.e(TAG, "after")
+        } catch(e: Exception) {
+            Log.e(TAG, "exception while defaulting $e")
         }
     }
 
