@@ -1,15 +1,14 @@
 package com.app.app.service
 
-import android.app.Service
-import android.speech.tts.TextToSpeech
 import android.util.Log
+import com.app.app.dto.EventObject
+import com.app.app.dto.EventType
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import org.greenrobot.eventbus.EventBus
-import java.util.*
 
 data class FCMMessage(val message: Map<String, String>)
 
@@ -31,8 +30,12 @@ class FCM: FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
         Log.e(TAG, "${message.data}")
-        //tts!!.speak(message as CharSequence?, TextToSpeech.QUEUE_FLUSH, null, "")
-        EventBus.getDefault().post(message.data["message"])
+
+        val data = hashMapOf(
+            "message" to message.data["message"]
+        )
+        val o = EventObject(EventType.TextToSpeech, data as Map<String, Object>)
+        EventBus.getDefault().post(o)
     }
 
     fun saveToken(token: String) {

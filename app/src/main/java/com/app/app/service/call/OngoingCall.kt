@@ -3,7 +3,10 @@ package com.app.app.service.call
 import android.telecom.Call
 import android.telecom.VideoProfile
 import android.util.Log
+import com.app.app.dto.EventObject
+import com.app.app.dto.EventType
 import io.reactivex.subjects.BehaviorSubject
+import org.greenrobot.eventbus.EventBus
 
 object OngoingCall {
     val TAG = "manu"
@@ -12,8 +15,13 @@ object OngoingCall {
 
     private val callback = object : Call.Callback() {
         override fun onStateChanged(call: Call, newState: Int) {
-            Log.e(TAG, "OngoingCall state changed")
-            state.onNext(newState)
+            //Log.e(TAG, "OngoingCall state changed newstate $newState")
+            val data = hashMapOf(
+                "state" to call.state
+            )
+            Log.e(TAG, "state changed ${call.state}")
+            val o = EventObject(EventType.CALL, data as Map<String, Object>)
+            //EventBus.getDefault().post(o)
         }
     }
 

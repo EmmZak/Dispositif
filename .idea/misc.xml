@@ -10,14 +10,15 @@
         <entry key="app/src/main/res/layout-w1000dp/activity_main.xml" value="0.19375" />
         <entry key="app/src/main/res/layout-w700dp-h350dp-land/activity_main.xml" value="0.1419753086419753" />
         <entry key="app/src/main/res/layout-w720dp/activity_main.xml" value="0.25833333333333336" />
-        <entry key="app/src/main/res/layout-w800dp-h450dp-land/activity_main.xml" value="0.32093933463796476" />
+        <entry key="app/src/main/res/layout-w800dp-h450dp-land/activity_main.xml" value="0.5341207349081365" />
         <entry key="app/src/main/res/layout-w800dp-h450dp-port/activity_main.xml" value="0.12578125" />
         <entry key="app/src/main/res/layout-w800dp-h450dp/activity_main.xml" value="0.12578125" />
         <entry key="app/src/main/res/layout-w800dp/activity_main.xml" value="0.12578125" />
         <entry key="app/src/main/res/layout/activity_fullscreen.xml" value="0.115234375" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.18169747209479079" />
         <entry key="app/src/main/res/layout/audio_recording_dialog.xml" value="0.12578125" />
-        <entry key="app/src/main/res/layout/fragment_call_dialog.xml" value="0.16352582493846873" />
+        <entry key="app/src/main/res/layout/fragment_call_dialog.xml" value="0.6332718367608787" />
+        <entry key="app/src/main/res/layout/fragment_incoming_call_dialog.xml" value="0.1" />
       </map>
     </option>
   </component>

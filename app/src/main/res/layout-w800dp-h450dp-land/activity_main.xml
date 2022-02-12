@@ -50,8 +50,7 @@
                 android:layout_weight="1"
                 android:backgroundTint="@color/common_google_signin_btn_text_dark_focused"
                 android:onClick="openCallDialog"
-                android:text="Open call dialog"
-                android:visibility="gone" />
+                android:text="Open call dialog"/>
 
             <ImageView
                 android:id="@+id/imageView3"

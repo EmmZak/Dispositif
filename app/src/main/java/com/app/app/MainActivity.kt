@@ -33,10 +33,13 @@ import org.greenrobot.eventbus.Subscribe
 import android.os.*
 import android.widget.ImageView
 import android.content.Intent
+import android.telecom.Call
 
 import android.telecom.TelecomManager
 import androidx.core.content.PermissionChecker
 import androidx.core.net.toUri
+import com.app.app.dto.EventObject
+import com.app.app.dto.EventType
 import com.app.app.service.call.OngoingCall
 
 
@@ -92,12 +95,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         // Android/data/com.app.app/cache/audio.3gp
         OUTPUT_DIR = externalCacheDir?.absolutePath.toString()
         OUTPUT_DIR = getExternalFilesDir(null)?.absolutePath.toString()
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    fun onMessageEvent(message: String) {
-        Log.e(TAG, "received event $message")
-        tts!!.speak(message, TextToSpeech.QUEUE_FLUSH, null, "")
     }
 
     override fun onStart() {
@@ -181,7 +178,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             val uri = "tel:0766006439".toUri()
             Log.e(TAG, "starting ACTION CALL activiry wioth uri ${uri.toString()}")
             startActivity(Intent(Intent.ACTION_CALL, uri))
-            openCallDialog(null)
+            //openCallDialog(null)
         } else {
             ActivityCompat.requestPermissions(
                 this,
@@ -191,19 +188,67 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
-    fun stopCall(view: View) {
-        Log.e(TAG, "stopping call")
-        try {
-            OngoingCall.hangup()
-        } catch(e: Exception) {
-            Log.e(TAG, "$e")
+    fun openCallDialog(view: View?) {
+        Log.e(TAG, "open call dialog")
+        //val dialog = CallDialog.newInstance("Emmanuel", "Appel en cours avec")
+        val dialog = IncomingCallDialog.newInstance("Emmanuel", "Appel entrant")
+        if (dialog == null) {
+            Log.e(TAG, "dialog is null")
+            return
+        }
+        dialog.show(supportFragmentManager, "call dialog")
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onCallEvent(eventObject: EventObject) {
+        if (eventObject.type == EventType.CALL) {
+            val state = Integer.parseInt(eventObject.data["state"].toString())
+            Log.e(TAG, "received call event $state")
+
+            // 9
+            if (state == Call.STATE_CONNECTING) {
+                Log.e(TAG, "Dialing ...")
+                val dialog = CallDialog.newInstance("Emmanuel", "Appel en cours")
+                if (dialog == null) {
+                    Log.e(TAG, "dialog is null")
+                    return
+                }
+                dialog.show(supportFragmentManager, "call dialog")
+            }
+            // 7
+            if (state == Call.STATE_DISCONNECTED) {
+                Log.e(TAG, "Closing ...")
+            }
+            // 2
+            if (state == Call.STATE_RINGING) {
+                Log.e(TAG, "Incoming ...")
+                val dialog = IncomingCallDialog.newInstance("Emmanuel", "Appel entrant")
+                if (dialog == null) {
+                    Log.e(TAG, "dialog is null")
+                    return
+                }
+                dialog.show(supportFragmentManager, "call dialog")
+            }
+            // 4
+            if (state == Call.STATE_ACTIVE) {
+                Log.e(TAG, "Incoming ...")
+                val dialog = CallDialog.newInstance("Emmanuel", "Appel entrant")
+                if (dialog == null) {
+                    Log.e(TAG, "dialog is null")
+                    return
+                }
+                dialog.show(supportFragmentManager, "call dialog")
+            }
+
         }
     }
 
-    fun openCallDialog(view: View?) {
-        Log.e(TAG, "open call dialog")
-        val dialog = CallDialog.newInstance("Emmanuel")
-        dialog.show(supportFragmentManager, "call dialog")
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onMessageEvent(eventObject: EventObject) {
+        if (eventObject.type == EventType.TextToSpeech) {
+            val text = eventObject.data["message"].toString()
+            tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
+        }
     }
 
     companion object {
