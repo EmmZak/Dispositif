@@ -1,4 +1,4 @@
-package com.app.app
+package com.app.app.dialog
 
 import android.os.Bundle
 import android.util.Log
@@ -9,14 +9,14 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.fragment.app.DialogFragment
+import com.app.app.R
 import com.app.app.service.call.OngoingCall
 import java.lang.Exception
 
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
 private const val TEXT_PARAM = "text"
 private const val NAME_PARAM = "name"
 
-class CallDialog : DialogFragment() {
+class InCallDialog : DialogFragment() {
     // TODO: Rename and change types of parameters
     private var text: String? = null
     private var name: String? = null
@@ -29,7 +29,6 @@ class CallDialog : DialogFragment() {
             text = it.getString(TEXT_PARAM)
             Log.e(TAG, "call dialog setting name $name")
         }
-
     }
 
     override fun onCreateView(
@@ -37,15 +36,15 @@ class CallDialog : DialogFragment() {
         savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
-        val view = inflater.inflate(R.layout.fragment_call_dialog, container, false)
+        val view = inflater.inflate(R.layout.fragment_in_call_dialog, container, false)
 
-        val nameView = view.findViewById<TextView>(R.id.callDialogName)
+        val nameView = view.findViewById<TextView>(R.id.inCallDialogName)
         nameView.text = "$name"
 
-        val textView = view.findViewById<TextView>(R.id.callDialogText)
+        val textView = view.findViewById<TextView>(R.id.inCallDialogText)
         textView.text = "$text"
 
-        val hangupButton = view.findViewById<Button>(R.id.hangupButton)
+        val hangupButton = view.findViewById<Button>(R.id.inCallHangupButton)
         hangupButton.setOnClickListener {
             Log.e(TAG, "hangupButton clicked")
             try {
@@ -56,13 +55,12 @@ class CallDialog : DialogFragment() {
             dismiss()
         }
 
-        return view
-    }
+        return view    }
 
     companion object {
         @JvmStatic
         fun newInstance(name: String, text: String) =
-            CallDialog().apply {
+            InCallDialog().apply {
                 arguments = Bundle().apply {
                     putString("name", name)
                     putString("text", text)

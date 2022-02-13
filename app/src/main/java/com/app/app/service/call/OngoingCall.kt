@@ -13,15 +13,22 @@ object OngoingCall {
 
     val state: BehaviorSubject<Int> = BehaviorSubject.create()
 
+    /**
+     * This callback handles changes such as
+     *      Outgoing Call -> Call.STATE_DIALING      -> 1
+     *      Answear       -> Call.STATE_ACTIVE       -> 4
+     *      Hungup        -> Call.STATE_DISCONNECTED -> 7
+     */
     private val callback = object : Call.Callback() {
         override fun onStateChanged(call: Call, newState: Int) {
             //Log.e(TAG, "OngoingCall state changed newstate $newState")
+
             val data = hashMapOf(
                 "state" to call.state
             )
             Log.e(TAG, "state changed ${call.state}")
             val o = EventObject(EventType.CALL, data as Map<String, Object>)
-            //EventBus.getDefault().post(o)
+            EventBus.getDefault().post(o)
         }
     }
 

@@ -1,4 +1,4 @@
-package com.app.app
+package com.app.app.dialog
 
 import android.os.Bundle
 import android.util.Log
@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.fragment.app.DialogFragment
+import com.app.app.R
 import com.app.app.service.call.OngoingCall
 import java.lang.Exception
 

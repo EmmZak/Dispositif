@@ -38,6 +38,10 @@ import android.telecom.Call
 import android.telecom.TelecomManager
 import androidx.core.content.PermissionChecker
 import androidx.core.net.toUri
+import androidx.fragment.app.DialogFragment
+import com.app.app.dialog.InCallDialog
+import com.app.app.dialog.IncomingCallDialog
+import com.app.app.dialog.OutgoingCallDialog
 import com.app.app.dto.EventObject
 import com.app.app.dto.EventType
 import com.app.app.service.call.OngoingCall
@@ -71,6 +75,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     val smsService = SmsService(this)
     val callService = CallService()
     //val ttsService = TTS(this)
+
+    // call
+    var callDialog : DialogFragment? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -201,20 +208,33 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onCallEvent(eventObject: EventObject) {
+
+        callDialog?.dismiss()
+
         if (eventObject.type == EventType.CALL) {
             val state = Integer.parseInt(eventObject.data["state"].toString())
             Log.e(TAG, "received call event $state")
 
-            // 9
-            if (state == Call.STATE_CONNECTING) {
+            // 1
+            if (state == Call.STATE_DIALING) {
                 Log.e(TAG, "Dialing ...")
-                val dialog = CallDialog.newInstance("Emmanuel", "Appel en cours")
-                if (dialog == null) {
+                callDialog = OutgoingCallDialog.newInstance("Emmanuel", "Appel en cours")
+                if (callDialog == null) {
                     Log.e(TAG, "dialog is null")
                     return
                 }
-                dialog.show(supportFragmentManager, "call dialog")
+                (callDialog as OutgoingCallDialog).show(supportFragmentManager, "call dialog")
             }
+            /* 9
+            if (state == Call.STATE_CONNECTING) {
+                Log.e(TAG, "Dialing ...")
+                callDialog = OutgoingCallDialog.newInstance("Emmanuel", "Appel en cours")
+                if (callDialog == null) {
+                    Log.e(TAG, "dialog is null")
+                    return
+                }
+                (callDialog as OutgoingCallDialog).show(supportFragmentManager, "call dialog")
+            } */
             // 7
             if (state == Call.STATE_DISCONNECTED) {
                 Log.e(TAG, "Closing ...")
@@ -222,24 +242,23 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             // 2
             if (state == Call.STATE_RINGING) {
                 Log.e(TAG, "Incoming ...")
-                val dialog = IncomingCallDialog.newInstance("Emmanuel", "Appel entrant")
-                if (dialog == null) {
+                callDialog = IncomingCallDialog.newInstance("Emmanuel", "Appel entrant")
+                if (callDialog == null) {
                     Log.e(TAG, "dialog is null")
                     return
                 }
-                dialog.show(supportFragmentManager, "call dialog")
+                (callDialog as IncomingCallDialog).show(supportFragmentManager, "call dialog")
             }
             // 4
             if (state == Call.STATE_ACTIVE) {
-                Log.e(TAG, "Incoming ...")
-                val dialog = CallDialog.newInstance("Emmanuel", "Appel entrant")
-                if (dialog == null) {
+                Log.e(TAG, "In Call ...")
+                callDialog = InCallDialog.newInstance("Emmanuel", "En appel avec")
+                if (callDialog == null) {
                     Log.e(TAG, "dialog is null")
                     return
                 }
-                dialog.show(supportFragmentManager, "call dialog")
+                (callDialog as InCallDialog).show(supportFragmentManager, "call dialog")
             }
-
         }
     }
 
