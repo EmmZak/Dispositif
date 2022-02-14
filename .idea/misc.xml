@@ -19,7 +19,7 @@
         <entry key="app/src/main/res/layout/audio_recording_dialog.xml" value="0.12578125" />
         <entry key="app/src/main/res/layout/fragment_call_dialog.xml" value="0.6332718367608787" />
         <entry key="app/src/main/res/layout/fragment_in_call_dialog.xml" value="0.1" />
-        <entry key="app/src/main/res/layout/fragment_incoming_call_dialog.xml" value="0.1" />
+        <entry key="app/src/main/res/layout/fragment_incoming_call_dialog.xml" value="0.235584890593008" />
         <entry key="app/src/main/res/layout/fragment_outgoing_call_dialog.xml" value="0.1" />
       </map>
     </option>
