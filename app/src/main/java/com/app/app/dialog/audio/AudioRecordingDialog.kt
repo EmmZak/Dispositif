@@ -1,4 +1,4 @@
-package com.app.app.dialog
+package com.app.app.dialog.audio
 
 import android.app.AlertDialog
 import android.app.Dialog

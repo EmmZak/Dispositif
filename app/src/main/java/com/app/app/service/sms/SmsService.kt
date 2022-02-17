@@ -1,15 +1,14 @@
-package com.app.app.service
+package com.app.app.service.sms
 
 import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.IBinder
 import android.telephony.SmsManager
 import android.util.Log
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
+import com.app.app.exception.SmsException
 import com.app.app.utils.Utils
 import java.io.File
 import java.lang.Exception
@@ -33,10 +32,12 @@ class SmsService(val context: Context) {
             val finalMessage = "[${Utils.getFormattedDateTime()}] $message"
 
             Log.e(TAG, "$finalMessage")
+
+            //context.getSystemService(SmsManager.class)
             SmsManager.getDefault().sendTextMessage(number, null, finalMessage, null, null)
         } catch(e: Exception) {
             Log.e(TAG, "SEND.exception ${e.toString()}")
-            throw e
+            throw SmsException(e.toString())
         }
     }
 
@@ -59,7 +60,7 @@ class SmsService(val context: Context) {
             }
         } catch(e: Exception) {
             Log.e(TAG, "SEND.exception ${e.toString()}")
-            throw e
+            throw SmsException(e.toString())
         }
     }
 
@@ -69,7 +70,7 @@ class SmsService(val context: Context) {
                 requestSmsPermission()
             } catch(e: Exception) {
                 Log.e(TAG, "PERMISSION.exception ${e.toString()}")
-                throw e
+                throw SmsException(e.toString())
             }
         }
         Log.e(TAG, "sms permission OK")

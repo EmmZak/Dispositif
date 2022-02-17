@@ -1,4 +1,4 @@
-package com.app.app
+package com.app.app.activity
 
 import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
@@ -7,23 +7,21 @@ import android.view.View
 import androidx.core.app.ActivityCompat
 import android.Manifest
 import android.annotation.SuppressLint
-import android.telecom.PhoneAccountHandle
 import java.lang.Exception
 import java.util.*
-import android.content.ComponentName
 import android.content.Context
 import android.graphics.Color
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
 import android.widget.Toast
 import com.app.app.service.call.CallService
-import com.app.app.service.SmsService
+import com.app.app.service.sms.SmsService
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 
 import android.media.MediaRecorder
 import androidx.annotation.RequiresApi
-import com.app.app.dialog.AudioRecordingDialog
+import com.app.app.dialog.audio.AudioRecordingDialog
 import java.io.IOException
 
 import org.greenrobot.eventbus.EventBus
@@ -41,12 +39,13 @@ import android.widget.LinearLayout
 import androidx.core.content.PermissionChecker
 import androidx.core.net.toUri
 import androidx.fragment.app.DialogFragment
+import com.app.app.R
 import com.app.app.dialog.call.InCallDialog
 import com.app.app.dialog.call.IncomingCallDialog
 import com.app.app.dialog.call.OutgoingCallDialog
 import com.app.app.dto.EventObject
 import com.app.app.dto.EventType
-import com.app.app.service.call.OngoingCall
+import com.app.app.exception.SmsException
 
 
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
@@ -154,10 +153,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     fun sendSms(number: Array<String>, text: String) {
         var message = ""
         try {
-            Log.e(TAG, "build version ${Build.VERSION.SDK_INT}")
             smsService.sendSms(number, text)
             message = "Notification envoyée"
-            tts!!.speak(message, TextToSpeech.QUEUE_FLUSH, null, "")
 
             var vibrator: Vibrator? = null
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -167,9 +164,14 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 vibrator = this.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
             }
             vibrator.vibrate(VibrationEffect.createOneShot(1000, 255))
-        } catch(e: Exception) {
-            message = "Erreur lors de l'envoi ou bien $e"
+
+        } catch (e: SmsException) {
+            Log.e(TAG, "$e")
+            message = "Problème lors de l'envoi de la notification"
         }
+
+        tts!!.speak(message, TextToSpeech.QUEUE_FLUSH, null, "")
+
         val toast = Toast.makeText(this, message, Toast.LENGTH_LONG)
         toast.show()
     }
@@ -192,7 +194,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             val uri = "tel:$number".toUri()
             Log.e(TAG, "starting ACTION CALL activiry wioth uri ${uri.toString()}")
             startActivity(Intent(Intent.ACTION_CALL, uri))
-            //openCallDialog(null)
         } else {
             ActivityCompat.requestPermissions(
                 this,
@@ -342,13 +343,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
     // check audio permission
-
-
-    private fun getAccountHandle(): PhoneAccountHandle? {
-        val phoneAccountLabel = BuildConfig.APPLICATION_ID
-        val componentName = ComponentName(this, MyConnectionService::class.java)
-        return PhoneAccountHandle(componentName, phoneAccountLabel)
-    }
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
