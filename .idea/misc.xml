@@ -7,20 +7,23 @@
         <entry key="app/src/main/res/drawable-v24/ic_launcher_foreground.xml" value="0.18385416666666668" />
         <entry key="app/src/main/res/drawable/ic_baseline_mic_24.xml" value="0.3260416666666667" />
         <entry key="app/src/main/res/drawable/ic_baseline_phone_24.xml" value="0.3260416666666667" />
+        <entry key="app/src/main/res/drawable/ic_doctor_background.xml" value="0.16709401709401708" />
         <entry key="app/src/main/res/layout-w1000dp/activity_main.xml" value="0.19375" />
         <entry key="app/src/main/res/layout-w700dp-h350dp-land/activity_main.xml" value="0.1419753086419753" />
         <entry key="app/src/main/res/layout-w720dp/activity_main.xml" value="0.25833333333333336" />
-        <entry key="app/src/main/res/layout-w800dp-h450dp-land/activity_main.xml" value="0.2002171187578024" />
+        <entry key="app/src/main/res/layout-w800dp-h450dp-land/activity_main.xml" value="0.36149488293705934" />
         <entry key="app/src/main/res/layout-w800dp-h450dp-port/activity_main.xml" value="0.12578125" />
         <entry key="app/src/main/res/layout-w800dp-h450dp/activity_main.xml" value="0.12578125" />
         <entry key="app/src/main/res/layout-w800dp/activity_main.xml" value="0.12578125" />
         <entry key="app/src/main/res/layout/activity_fullscreen.xml" value="0.115234375" />
-        <entry key="app/src/main/res/layout/activity_main.xml" value="0.18169747209479079" />
+        <entry key="app/src/main/res/layout/activity_main.xml" value="0.10145882596684172" />
         <entry key="app/src/main/res/layout/audio_recording_dialog.xml" value="0.12578125" />
         <entry key="app/src/main/res/layout/fragment_call_dialog.xml" value="0.6332718367608787" />
         <entry key="app/src/main/res/layout/fragment_in_call_dialog.xml" value="0.1" />
         <entry key="app/src/main/res/layout/fragment_incoming_call_dialog.xml" value="0.235584890593008" />
         <entry key="app/src/main/res/layout/fragment_outgoing_call_dialog.xml" value="0.1" />
+        <entry key="app/src/main/res/mipmap-anydpi-v26/ic_doctor.xml" value="0.16709401709401708" />
+        <entry key="app/src/main/res/mipmap-anydpi-v26/ic_doctor_round.xml" value="0.2675213675213675" />
       </map>
     </option>
   </component>

@@ -32,7 +32,6 @@
                 android:onClick="sendOk"
                 app:srcCompat="@drawable/ic_happy" />
 
-
             <Button
                 android:id="@+id/hangupButton"
                 android:layout_width="50dp"
@@ -51,7 +50,7 @@
                 android:backgroundTint="@color/common_google_signin_btn_text_dark_focused"
                 android:onClick="openCallDialog"
                 android:text="Open call dialog"
-                android:visibility="visible" />
+                android:visibility="gone" />
 
             <ImageView
                 android:id="@+id/imageView3"
@@ -76,33 +75,74 @@
 
             <LinearLayout
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
+                android:layout_height="200dp"
                 android:layout_weight="18"
                 android:gravity="center_vertical"
                 tools:ignore="NestedWeights,UselessParent">
 
-                <ImageView
-                    android:id="@+id/callView1"
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="150dp"
                     android:layout_weight="1"
-                    android:onClick="call"
-                    android:rotation="270"
-                    app:srcCompat="@drawable/ic_baseline_phone_24" />
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:weightSum="10"
+                    android:gravity="center_horizontal"
+                    >
 
-                <ImageView
-                    android:id="@+id/callView2"
+                    <ImageView
+                        android:id="@+id/callView1"
+                        android:layout_width="match_parent"
+                        android:layout_height="100dp"
+                        android:layout_weight="8"
+                        android:onClick="call"
+                        android:rotation="270"
+                        app:srcCompat="@drawable/ic_baseline_phone_24"
+                        />
+
+                    <TextView
+                        android:id="@+id/textView1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.5"
+                        android:gravity="center"
+                        android:text="Emmanuel"
+                        android:textSize="30dp" />
+
+                </LinearLayout>
+
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="150dp"
                     android:layout_weight="1"
-                    android:onClick="call"
-                    android:rotation="270"
-                    app:srcCompat="@drawable/ic_baseline_phone_24" />
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:weightSum="10"
+                    android:gravity="center_horizontal"
+                    >
+
+                    <ImageView
+                        android:id="@+id/callView2"
+                        android:layout_width="match_parent"
+                        android:layout_height="100dp"
+                        android:layout_weight="8"
+                        android:onClick="call"
+                        android:rotation="270"
+                        app:srcCompat="@drawable/ic_baseline_phone_24" />
+
+                    <TextView
+                        android:id="@+id/textView2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.5"
+                        android:gravity="center"
+                        android:text="Alexandre"
+                        android:textSize="30dp" />
+
+                </LinearLayout>
 
                 <ImageView
                     android:id="@+id/sosView"
                     android:layout_width="0dp"
-                    android:layout_height="133dp"
+                    android:layout_height="200dp"
                     android:layout_weight="1"
                     android:onClick="sendSOS"
                     app:srcCompat="@drawable/ic_sos" />
@@ -110,7 +150,7 @@
                 <ImageView
                     android:id="@+id/microView"
                     android:layout_width="0dp"
-                    android:layout_height="150dp"
+                    android:layout_height="200dp"
                     android:layout_weight="1"
                     android:onClick="record"
                     app:srcCompat="@drawable/ic_baseline_mic_24" />
@@ -118,7 +158,6 @@
             </LinearLayout>
 
         </LinearLayout>
-
 
     </LinearLayout>
 

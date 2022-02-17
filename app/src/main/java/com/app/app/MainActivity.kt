@@ -39,9 +39,9 @@ import android.telecom.TelecomManager
 import androidx.core.content.PermissionChecker
 import androidx.core.net.toUri
 import androidx.fragment.app.DialogFragment
-import com.app.app.dialog.InCallDialog
-import com.app.app.dialog.IncomingCallDialog
-import com.app.app.dialog.OutgoingCallDialog
+import com.app.app.dialog.call.InCallDialog
+import com.app.app.dialog.call.IncomingCallDialog
+import com.app.app.dialog.call.OutgoingCallDialog
 import com.app.app.dto.EventObject
 import com.app.app.dto.EventType
 import com.app.app.service.call.OngoingCall
@@ -134,16 +134,19 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         return super.isFinishing()
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
     fun sendOk(view: View) {
         Log.e("manu", "send OK")
         sendSms(numbers, "Salut, tout va bien")
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
     fun sendKo(view: View) {
         Log.e("manu", "send KO")
         sendSms(numbers, "Salut, j'ai un petit souci")
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
     fun sendSOS(view: View) {
         Log.e("manu", "send SOS")
         sendSms(numbers, "Alerte SOS \n Mme Dupont, localisation suivante : 12 rue de l'Yser, Raismes 59590")
@@ -152,16 +155,21 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     fun sendSms(number: Array<String>, text: String) {
         var message = ""
         try {
+            Log.e(TAG, "build version ${Build.VERSION.SDK_INT}")
             smsService.sendSms(number, text)
             message = "Notification envoyée"
-            val vibrator = this?.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-            if (Build.VERSION.SDK_INT >= 26) {
-                vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE))
+            tts!!.speak(message, TextToSpeech.QUEUE_FLUSH, null, "")
+
+            var vibrator: Vibrator? = null
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vibratorManager = this.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                vibrator = vibratorManager.defaultVibrator
             } else {
-                vibrator.vibrate(200)
+                vibrator = this.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
             }
+            vibrator.vibrate(VibrationEffect.createOneShot(1000, 255))
         } catch(e: Exception) {
-            message = "Erreur lors de l'envoi"
+            message = "Erreur lors de l'envoi ou bien $e"
         }
         val toast = Toast.makeText(this, message, Toast.LENGTH_LONG)
         toast.show()
@@ -182,7 +190,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 Manifest.permission.CALL_PHONE
             ) == PermissionChecker.PERMISSION_GRANTED
         ) {
-            val uri = "tel:0766006439".toUri()
+            val uri = "tel:0621585966".toUri()
             Log.e(TAG, "starting ACTION CALL activiry wioth uri ${uri.toString()}")
             startActivity(Intent(Intent.ACTION_CALL, uri))
             //openCallDialog(null)
