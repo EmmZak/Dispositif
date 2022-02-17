@@ -57,7 +57,7 @@
                 android:layout_height="0dp"
                 android:layout_weight="1.8"
                 android:onClick="sendSOS"
-                app:srcCompat="@mipmap/ic_family_foreground"/>
+                app:srcCompat="@mipmap/ic_family_foreground" />
 
             <ImageView
                 android:id="@+id/family"

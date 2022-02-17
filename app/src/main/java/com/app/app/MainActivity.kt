@@ -36,6 +36,8 @@ import android.content.Intent
 import android.telecom.Call
 
 import android.telecom.TelecomManager
+import android.view.WindowManager
+import android.widget.LinearLayout
 import androidx.core.content.PermissionChecker
 import androidx.core.net.toUri
 import androidx.fragment.app.DialogFragment
@@ -52,6 +54,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     var number1 = "0766006439"
     var number2 = "0621585966"
     val numbers = arrayOf(number2, number1)
+
+    val numbersMap = mapOf<String, String>(
+        "Alexandre" to "0621585966",
+        "Emmanuel" to "0766006439"
+    )
 
     val SENDING = false
 
@@ -82,6 +89,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.e(TAG, "On create triggered")
+        window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN)
         setContentView(R.layout.activity_main)
 
         tts = TextToSpeech(this, this)
@@ -102,6 +110,14 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         // Android/data/com.app.app/cache/audio.3gp
         OUTPUT_DIR = externalCacheDir?.absolutePath.toString()
         OUTPUT_DIR = getExternalFilesDir(null)?.absolutePath.toString()
+
+        // call card on click
+        findViewById<LinearLayout>(R.id.callCard1).setOnClickListener {
+            numbersMap["Emmanuel"]?.let { it -> call(it) }
+        }
+        findViewById<LinearLayout>(R.id.callCard2).setOnClickListener {
+            numbersMap["Alexandre"]?.let { it -> call(it) }
+        }
     }
 
     override fun onStart() {
@@ -111,23 +127,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         Log.e(TAG, "On start after replaceDefaultDialer")
 
         EventBus.getDefault().register(this);
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        Log.d(TAG, "on destroy Removing snapshot")
-        configListener?.remove()
-        notifListener?.remove()
-    }
-
-    override fun onStop() {
-        super.onStop()
-        notifListener?.remove()
-        configListener?.remove()
-        recorder?.release()
-        recorder = null
-        EventBus.getDefault().unregister(this);
-        Log.e(TAG, "On stop triggered")
     }
 
     override fun isFinishing(): Boolean {
@@ -183,14 +182,14 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     @SuppressLint("MissingPermission")
-    fun call(view: View) {
+    fun call(number: String) {
         Log.e(TAG, "call ")
         if (PermissionChecker.checkSelfPermission(
                 this,
                 Manifest.permission.CALL_PHONE
             ) == PermissionChecker.PERMISSION_GRANTED
         ) {
-            val uri = "tel:0621585966".toUri()
+            val uri = "tel:$number".toUri()
             Log.e(TAG, "starting ACTION CALL activiry wioth uri ${uri.toString()}")
             startActivity(Intent(Intent.ACTION_CALL, uri))
             //openCallDialog(null)
@@ -218,8 +217,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onCallEvent(eventObject: EventObject) {
 
-        callDialog?.dismiss()
-
         if (eventObject.type == EventType.CALL) {
             val state = Integer.parseInt(eventObject.data["state"].toString())
             Log.e(TAG, "received call event $state")
@@ -227,6 +224,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             // 1
             if (state == Call.STATE_DIALING) {
                 Log.e(TAG, "Dialing ...")
+                callDialog?.dismiss()
                 callDialog = OutgoingCallDialog.newInstance("Emmanuel", "Appel en cours")
                 if (callDialog == null) {
                     Log.e(TAG, "dialog is null")
@@ -248,10 +246,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             // 7
             if (state == Call.STATE_DISCONNECTED) {
                 Log.e(TAG, "Closing ...")
+                callDialog?.dismiss()
             }
             // 2
             if (state == Call.STATE_RINGING) {
                 Log.e(TAG, "Incoming ...")
+                callDialog?.dismiss()
                 callDialog = IncomingCallDialog.newInstance("Emmanuel", "Appel entrant")
                 if (callDialog == null) {
                     Log.e(TAG, "dialog is null")
@@ -263,6 +263,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             // 4
             if (state == Call.STATE_ACTIVE) {
                 Log.e(TAG, "In Call ...")
+                callDialog?.dismiss()
                 callDialog = InCallDialog.newInstance("Emmanuel", "En appel avec")
                 if (callDialog == null) {
                     Log.e(TAG, "dialog is null")
@@ -308,7 +309,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }, 5000)
     }
 
-    fun startRecording() {
+    private fun startRecording() {
         Log.e(TAG, "startRecording()")
         recorder = MediaRecorder().apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
@@ -377,6 +378,23 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         } catch(e: Exception) {
             Log.e(TAG, "exception while defaulting $e")
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.d(TAG, "on destroy Removing snapshot")
+        configListener?.remove()
+        notifListener?.remove()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        notifListener?.remove()
+        configListener?.remove()
+        recorder?.release()
+        recorder = null
+        EventBus.getDefault().unregister(this);
+        Log.e(TAG, "On stop triggered")
     }
 
 }
