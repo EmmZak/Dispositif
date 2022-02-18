@@ -38,11 +38,8 @@ import android.view.WindowManager
 import android.widget.LinearLayout
 import androidx.core.content.PermissionChecker
 import androidx.core.net.toUri
-import androidx.fragment.app.DialogFragment
 import com.app.app.R
-import com.app.app.dialog.call.InCallDialog
-import com.app.app.dialog.call.IncomingCallDialog
-import com.app.app.dialog.call.OutgoingCallDialog
+import com.app.app.dialog.call.CallDialog
 import com.app.app.dto.EventObject
 import com.app.app.dto.EventType
 import com.app.app.exception.SmsException
@@ -83,11 +80,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     //val ttsService = TTS(this)
 
     // call
-    var callDialog : DialogFragment? = null
+    var callDialog : CallDialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.e(TAG, "On create triggered")
+
         window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN)
         setContentView(R.layout.activity_main)
 
@@ -179,7 +176,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     fun speak(view: View) {
         val bundle = Bundle()
         bundle.putInt("quality", Voice.QUALITY_VERY_HIGH)
-        //bundle.putBoolean("", "")
         tts!!.speak("manu N'oubliez pas, de prendre vos médicaments, à 15 heures", TextToSpeech.QUEUE_FLUSH, bundle, "")
     }
 
@@ -206,13 +202,13 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     fun openCallDialog(view: View?) {
         Log.e(TAG, "open call dialog")
         //val dialog = CallDialog.newInstance("Emmanuel", "Appel en cours avec")
-        callDialog = InCallDialog.newInstance("Emmanuel", "En appel avec")
+/*        callDialog = InCallDialog.newInstance("Emmanuel", "En appel avec")
         if (callDialog == null) {
             Log.e(TAG, "dialog is null")
             return
         }
         (callDialog as InCallDialog).isCancelable = false
-        (callDialog as InCallDialog).show(supportFragmentManager, "call dialog")
+        (callDialog as InCallDialog).show(supportFragmentManager, "call dialog")*/
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -225,14 +221,17 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             // 1
             if (state == Call.STATE_DIALING) {
                 Log.e(TAG, "Dialing ...")
-                callDialog?.dismiss()
+                callDialog = CallDialog.newInstance("Emmanuel", "Appel en cours", 1)
+                callDialog!!.isCancelable = false
+                (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
+/*                callDialog?.dismiss()
                 callDialog = OutgoingCallDialog.newInstance("Emmanuel", "Appel en cours")
                 if (callDialog == null) {
                     Log.e(TAG, "dialog is null")
                     return
                 }
                 (callDialog as OutgoingCallDialog).isCancelable = false
-                (callDialog as OutgoingCallDialog).show(supportFragmentManager, "call dialog")
+                (callDialog as OutgoingCallDialog).show(supportFragmentManager, "call dialog")*/
             }
             /* 9
             if (state == Call.STATE_CONNECTING) {
@@ -253,25 +252,39 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             if (state == Call.STATE_RINGING) {
                 Log.e(TAG, "Incoming ...")
                 callDialog?.dismiss()
+                callDialog = CallDialog.newInstance("Emmanuel", "Appel entrant", 2)
+                callDialog!!.isCancelable = false
+                (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
+                //callDialog!!.updateUI("Emmanuel", "Appel entrant")
+/*                callDialog?.dismiss()
                 callDialog = IncomingCallDialog.newInstance("Emmanuel", "Appel entrant")
                 if (callDialog == null) {
                     Log.e(TAG, "dialog is null")
                     return
                 }
                 (callDialog as IncomingCallDialog).isCancelable = false
-                (callDialog as IncomingCallDialog).show(supportFragmentManager, "call dialog")
+                (callDialog as IncomingCallDialog).show(supportFragmentManager, "call dialog")*/
             }
             // 4
             if (state == Call.STATE_ACTIVE) {
                 Log.e(TAG, "In Call ...")
-                callDialog?.dismiss()
+                //callDialog = CallDialog.newInstance("Emmanuel", "En appel avec")
+                if (callDialog != null) {
+                    callDialog!!.updateUI( "Emmanuel", "En appel avec", 1)
+                } else {
+                    Log.e(TAG, "callDialog is null creating one")
+                    callDialog = CallDialog.newInstance("Emmanuel", "En appel avec", 1)
+                    callDialog!!.isCancelable = false
+                    (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
+                }
+/*                callDialog?.dismiss()
                 callDialog = InCallDialog.newInstance("Emmanuel", "En appel avec")
                 if (callDialog == null) {
                     Log.e(TAG, "dialog is null")
                     return
                 }
                 (callDialog as InCallDialog).isCancelable = false
-                (callDialog as InCallDialog).show(supportFragmentManager, "call dialog")
+                (callDialog as InCallDialog).show(supportFragmentManager, "call dialog")*/
             }
         }
     }

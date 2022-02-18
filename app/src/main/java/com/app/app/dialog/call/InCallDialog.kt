@@ -17,7 +17,6 @@ private const val TEXT_PARAM = "text"
 private const val NAME_PARAM = "name"
 
 class InCallDialog : DialogFragment() {
-    // TODO: Rename and change types of parameters
     private var text: String? = null
     private var name: String? = null
     val TAG = "manu"
@@ -55,15 +54,16 @@ class InCallDialog : DialogFragment() {
             dismiss()
         }
 
-        return view    }
+        return view
+    }
 
     companion object {
         @JvmStatic
         fun newInstance(name: String, text: String) =
             InCallDialog().apply {
                 arguments = Bundle().apply {
-                    putString("name", name)
-                    putString("text", text)
+                    putString(NAME_PARAM, name)
+                    putString(TEXT_PARAM, text)
                 }
             }
     }
