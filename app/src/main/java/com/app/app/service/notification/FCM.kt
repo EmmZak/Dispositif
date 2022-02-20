@@ -1,6 +1,7 @@
 package com.app.app.service
 
 import android.util.Log
+import com.app.app.db.FcmRepository
 import com.app.app.dto.EventObject
 import com.app.app.dto.EventType
 import com.google.firebase.firestore.SetOptions
@@ -19,12 +20,14 @@ class FCM: FirebaseMessagingService() {
     val NOTIFICATION_ID = 100
     val db = Firebase.firestore
 
+    val fcmRepository = FcmRepository()
+
     override fun onNewToken(token: String) {
         Log.e(TAG, "Refreshed token: $token")
         // If you want to send messages to this application instance or
         // manage this apps subscriptions on the server side, send the
         // FCM registration token to your app server.
-        saveToken(token)
+        fcmRepository.saveToken(token)
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
@@ -34,22 +37,9 @@ class FCM: FirebaseMessagingService() {
         val data = hashMapOf(
             "message" to message.data["message"]
         )
-        val o = EventObject(EventType.TextToSpeech, data as Map<String, Object>)
+        val action = EventType.values().first {it.name == message.data["action"]}
+        Log.e(TAG, "action $action")
+        val o = EventObject(action, message.data)
         EventBus.getDefault().post(o)
     }
-
-    fun saveToken(token: String) {
-        val data = hashMapOf(
-            "token" to token
-        )
-        db.collection("apps")
-            .document("communication")
-            .set(data, SetOptions.merge())
-            .addOnSuccessListener {
-                Log.e("TOKEN", "token saved")
-            }.addOnFailureListener {e ->
-                Log.e("TOKEN", "error saving token", e)
-            }
-    }
-
 }

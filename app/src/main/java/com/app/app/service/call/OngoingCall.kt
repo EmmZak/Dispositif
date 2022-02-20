@@ -11,7 +11,7 @@ import org.greenrobot.eventbus.EventBus
 object OngoingCall {
     val TAG = "manu"
 
-    val state: BehaviorSubject<Int> = BehaviorSubject.create()
+    private val state: BehaviorSubject<Int> = BehaviorSubject.create()
 
     /**
      * This callback handles changes such as
@@ -27,7 +27,7 @@ object OngoingCall {
                 "state" to call.state
             )
             Log.e(TAG, "state changed ${call.state}")
-            val o = EventObject(EventType.CALL, data as Map<String, Object>)
+            val o = EventObject(EventType.CALL, data as Map<String, Any>)
             EventBus.getDefault().post(o)
         }
     }

@@ -58,6 +58,7 @@ class SmsService(val context: Context) {
             for(number in numbers) {
                 SmsManager.getDefault().sendTextMessage(number, null, finalMessage, null, null)
             }
+
         } catch(e: Exception) {
             Log.e(TAG, "SEND.exception ${e.toString()}")
             throw SmsException(e.toString())

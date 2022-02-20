@@ -28,7 +28,7 @@ class CallService : InCallService() {
         val data = hashMapOf(
             "state" to call.state
         )
-        val o = EventObject(EventType.CALL, data as Map<String, Object>)
+        val o = EventObject(EventType.CALL, data as Map<String, Any>)
         EventBus.getDefault().post(o)
     }
 
@@ -36,10 +36,8 @@ class CallService : InCallService() {
         Log.e(TAG,"onCallRemoved $call")
         OngoingCall.call = null
 
-        val data = hashMapOf(
-            "state" to call.state
-        )
-        val o = EventObject(EventType.CALL, data as Map<String, Object>)
+        //val data = hashMapOf("state" to call.state)
+        //val o = EventObject(EventType.CALL, data as Map<String, Any>)
         //EventBus.getDefault().post(o)
     }
 }

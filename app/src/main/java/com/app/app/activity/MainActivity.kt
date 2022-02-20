@@ -9,7 +9,6 @@ import android.Manifest
 import android.annotation.SuppressLint
 import java.lang.Exception
 import java.util.*
-import android.content.Context
 import android.graphics.Color
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
@@ -31,6 +30,7 @@ import org.greenrobot.eventbus.Subscribe
 import android.os.*
 import android.widget.ImageView
 import android.content.Intent
+import android.location.Location
 import android.telecom.Call
 
 import android.telecom.TelecomManager
@@ -43,9 +43,18 @@ import com.app.app.dialog.call.CallDialog
 import com.app.app.dto.EventObject
 import com.app.app.dto.EventType
 import com.app.app.exception.SmsException
+import com.app.app.service.gps.GpsService
+import com.app.app.service.vibrator.VibratorService
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationServices
 
 
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
+
+    val MESSAGE_OK = "Salut, tout va bien"
+    val MESSAGE_KO = "Salut, j'ai un souci"
+    var MESSAGE_SOS = "Alerte SOS \n Dispositif, localisation suivante : "
 
     var number1 = "0766006439"
     var number2 = "0621585966"
@@ -75,9 +84,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     var tts: TextToSpeech? = null
 
     // services
-    val smsService = SmsService(this)
-    val callService = CallService()
-    //val ttsService = TTS(this)
+    var smsService: SmsService? = null
+    var callService: CallService? = null
+    var vibratorService: VibratorService? = null
+    var gpsService: GpsService? = null
 
     // call
     var callDialog : CallDialog? = null
@@ -86,6 +96,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         super.onCreate(savedInstanceState)
 
         window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        //window.setFlags(android.R.attr.windowFullscreen, android.R.attr.windowFullscreen )
         setContentView(R.layout.activity_main)
 
         tts = TextToSpeech(this, this)
@@ -114,6 +125,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         findViewById<LinearLayout>(R.id.callCard2).setOnClickListener {
             numbersMap["Alexandre"]?.let { it -> call(it) }
         }
+
+        callService = CallService()
+        smsService = SmsService(this)
+        vibratorService = VibratorService(this)
+        gpsService = GpsService(this)
     }
 
     override fun onStart() {
@@ -130,53 +146,46 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
-    fun sendOk(view: View) {
+    fun sendOk(@Suppress("UNUSED_PARAMETER") view: View) {
         Log.e("manu", "send OK")
-        sendSms(numbers, "Salut, tout va bien")
+        sendSms(numbers, MESSAGE_OK)
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
-    fun sendKo(view: View) {
+    fun sendKo(@Suppress("UNUSED_PARAMETER") view: View) {
         Log.e("manu", "send KO")
-        sendSms(numbers, "Salut, j'ai un petit souci")
+        sendSms(numbers, MESSAGE_KO)
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
-    fun sendSOS(view: View) {
+    fun sendSOS(@Suppress("UNUSED_PARAMETER") view: View) {
         Log.e("manu", "send SOS")
-        sendSms(numbers, "Alerte SOS \n Mme Dupont, localisation suivante : 12 rue de l'Yser, Raismes 59590")
+        // fetch gps localisation
+        gpsService?.getLocationUrl()
+            ?.addOnSuccessListener { loc : Location? ->
+                Log.e(TAG, "location $loc")
+                //val mapUrl = "https://www.google.com/maps/@${loc?.latitude},${loc?.longitude},20z"
+                val mapUrl = "https://www.google.com/maps/search/?api=1&query=${loc?.latitude},${loc?.longitude}"
+                Log.e(TAG, "mapUrl $mapUrl")
+                sendSms(numbers, "$MESSAGE_SOS $mapUrl")
+            }
+            ?.addOnFailureListener {
+                Log.e(TAG, "error")
+            }
     }
 
     fun sendSms(number: Array<String>, text: String) {
         var message = ""
         try {
-            smsService.sendSms(number, text)
+            smsService?.sendSms(number, text)
             message = "Notification envoyée"
-
-            var vibrator: Vibrator? = null
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val vibratorManager = this.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-                vibrator = vibratorManager.defaultVibrator
-            } else {
-                vibrator = this.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-            }
-            vibrator.vibrate(VibrationEffect.createOneShot(1000, 255))
-
+            vibratorService?.vibrate(1000)
         } catch (e: SmsException) {
             Log.e(TAG, "$e")
             message = "Problème lors de l'envoi de la notification"
         }
-
-        tts!!.speak(message, TextToSpeech.QUEUE_FLUSH, null, "")
-
-        val toast = Toast.makeText(this, message, Toast.LENGTH_LONG)
-        toast.show()
-    }
-
-    fun speak(view: View) {
-        val bundle = Bundle()
-        bundle.putInt("quality", Voice.QUALITY_VERY_HIGH)
-        tts!!.speak("manu N'oubliez pas, de prendre vos médicaments, à 15 heures", TextToSpeech.QUEUE_FLUSH, bundle, "")
+        tts!!.speak(message, TextToSpeech.QUEUE_ADD, null, "")
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
 
     @SuppressLint("MissingPermission")
@@ -199,7 +208,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
-    fun openCallDialog(view: View?) {
+    fun openCallDialog(@Suppress("UNUSED_PARAMETER") view: View?) {
         Log.e(TAG, "open call dialog")
         //val dialog = CallDialog.newInstance("Emmanuel", "Appel en cours avec")
 /*        callDialog = InCallDialog.newInstance("Emmanuel", "En appel avec")
@@ -212,37 +221,26 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    fun onCallEvent(eventObject: EventObject) {
+    fun onEvent(eventObject: EventObject) {
+        Log.e(TAG, "event fun $eventObject")
+        when(eventObject.type) {
+            EventType.CALL -> onCallEvent(eventObject)
+            EventType.TTS -> onMessageEvent(eventObject)
+            EventType.LOCATION -> onLocationEvent(eventObject)
+        }
+    }
 
+    private fun onCallEvent(eventObject: EventObject) {
         if (eventObject.type == EventType.CALL) {
             val state = Integer.parseInt(eventObject.data["state"].toString())
             Log.e(TAG, "received call event $state")
-
             // 1
             if (state == Call.STATE_DIALING) {
                 Log.e(TAG, "Dialing ...")
                 callDialog = CallDialog.newInstance("Emmanuel", "Appel en cours", 1)
                 callDialog!!.isCancelable = false
                 (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
-/*                callDialog?.dismiss()
-                callDialog = OutgoingCallDialog.newInstance("Emmanuel", "Appel en cours")
-                if (callDialog == null) {
-                    Log.e(TAG, "dialog is null")
-                    return
-                }
-                (callDialog as OutgoingCallDialog).isCancelable = false
-                (callDialog as OutgoingCallDialog).show(supportFragmentManager, "call dialog")*/
             }
-            /* 9
-            if (state == Call.STATE_CONNECTING) {
-                Log.e(TAG, "Dialing ...")
-                callDialog = OutgoingCallDialog.newInstance("Emmanuel", "Appel en cours")
-                if (callDialog == null) {
-                    Log.e(TAG, "dialog is null")
-                    return
-                }
-                (callDialog as OutgoingCallDialog).show(supportFragmentManager, "call dialog")
-            } */
             // 7
             if (state == Call.STATE_DISCONNECTED) {
                 Log.e(TAG, "Closing ...")
@@ -255,15 +253,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 callDialog = CallDialog.newInstance("Emmanuel", "Appel entrant", 2)
                 callDialog!!.isCancelable = false
                 (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
-                //callDialog!!.updateUI("Emmanuel", "Appel entrant")
-/*                callDialog?.dismiss()
-                callDialog = IncomingCallDialog.newInstance("Emmanuel", "Appel entrant")
-                if (callDialog == null) {
-                    Log.e(TAG, "dialog is null")
-                    return
-                }
-                (callDialog as IncomingCallDialog).isCancelable = false
-                (callDialog as IncomingCallDialog).show(supportFragmentManager, "call dialog")*/
             }
             // 4
             if (state == Call.STATE_ACTIVE) {
@@ -277,23 +266,37 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     callDialog!!.isCancelable = false
                     (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
                 }
-/*                callDialog?.dismiss()
-                callDialog = InCallDialog.newInstance("Emmanuel", "En appel avec")
-                if (callDialog == null) {
-                    Log.e(TAG, "dialog is null")
-                    return
-                }
-                (callDialog as InCallDialog).isCancelable = false
-                (callDialog as InCallDialog).show(supportFragmentManager, "call dialog")*/
             }
         }
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    fun onMessageEvent(eventObject: EventObject) {
-        if (eventObject.type == EventType.TextToSpeech) {
+    private fun onMessageEvent(eventObject: EventObject) {
+        Log.e(TAG, "onMessageEvent $eventObject")
+        if (eventObject.type == EventType.TTS) {
             val text = eventObject.data["message"].toString()
             tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
+        }
+    }
+
+    private fun onLocationEvent(eventObject: EventObject) {
+        Log.e(TAG, "onLocationEvent $eventObject")
+        if (eventObject.type == EventType.LOCATION) {
+            val text = eventObject.data["message"].toString()
+            tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
+
+            gpsService?.getLocationUrl()
+                ?.addOnSuccessListener { loc : Location? ->
+                    Log.e(TAG, "location $loc")
+                    //val mapUrl = "https://www.google.com/maps/@${loc?.latitude},${loc?.longitude},20z"
+                    val mapUrl = "https://www.google.com/maps/search/?api=1&query=${loc?.latitude},${loc?.longitude}"
+                    Log.e(TAG, "mapUrl $mapUrl")
+                    val number = eventObject.data["number"]
+                    val numberArray = arrayOf<String>(number as String)
+                    sendSms(numberArray, "$MESSAGE_SOS $mapUrl")
+                }
+                ?.addOnFailureListener {
+                    Log.e(TAG, "error")
+                }
         }
     }
 
@@ -302,7 +305,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
-    fun record(view: View) {
+    fun record(@Suppress("UNUSED_PARAMETER") view: View) {
         Log.e(TAG, "into record")
         if (isRecording) {
             Log.e(TAG, "already recording !!!!")
@@ -350,7 +353,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         recorder = null
 
         try {
-            smsService.sendMms(number1, OUTPUT_DIR, FILE_NAME)
+            smsService?.sendMms(number1, OUTPUT_DIR, FILE_NAME)
         } catch(e: Exception) {
             Log.e(TAG, "$e")
         }
