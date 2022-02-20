@@ -65,7 +65,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     // audio recording
     var isRecording = false
-    var recorder: MediaRecorder? = null
+    //var recorder: MediaRecorder? = null
     //var FILE_NAME : String = ""
     //var OUTPUT_DIR : String = ""
     //val pop = AudioRecordingDialog()
@@ -188,8 +188,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             ) == PermissionChecker.PERMISSION_GRANTED
         ) {
             val uri = "tel:$number".toUri()
-            Log.e(TAG, "starting ACTION CALL activiry wioth uri ${uri.toString()}")
-            startActivity(Intent(Intent.ACTION_CALL, uri))
+            Log.e(TAG, "starting ACTION CALL activity with uri ${uri.toString()}")
+            try {
+                startActivity(Intent(Intent.ACTION_CALL, uri))
+            } catch (e: Exception) {
+                Log.e(TAG, "call e $e")
+            }
         } else {
             ActivityCompat.requestPermissions(
                 this,
@@ -228,7 +232,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             // 1
             if (state == Call.STATE_DIALING) {
                 Log.e(TAG, "Dialing ...")
-                callDialog = CallDialog.newInstance("Emmanuel", "Appel en cours", 1)
+                callDialog = CallDialog.newInstance("Emmanuel", "Appel en cours ...", 1)
                 callDialog!!.isCancelable = false
                 (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
             }
@@ -241,7 +245,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             if (state == Call.STATE_RINGING) {
                 Log.e(TAG, "Incoming ...")
                 callDialog?.dismiss()
-                callDialog = CallDialog.newInstance("Emmanuel", "Appel entrant", 2)
+                callDialog = CallDialog.newInstance("Emmanuel", "Appel entrant ...", 2)
                 callDialog!!.isCancelable = false
                 (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
             }
@@ -253,7 +257,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     callDialog!!.updateUI( "Emmanuel", "En appel avec", 1)
                 } else {
                     Log.e(TAG, "callDialog is null creating one")
-                    callDialog = CallDialog.newInstance("Emmanuel", "En appel avec", 1)
+                    callDialog = CallDialog.newInstance("Emmanuel", "En appel avec ...", 1)
                     callDialog!!.isCancelable = false
                     (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
                 }
@@ -335,7 +339,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }*/
 
     fun stopRecording() {
-        Log.e(TAG, "stop recording")
+/*        Log.e(TAG, "stop recording")
         recorder?.apply {
             stop()
             reset()
@@ -347,7 +351,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             //smsService?.sendMms(number1, OUTPUT_DIR, FILE_NAME)
         } catch(e: Exception) {
             Log.e(TAG, "$e")
-        }
+        }*/
     }
     // check audio permission
 
@@ -388,10 +392,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onStop() {
         super.onStop()
-        recorder?.release()
-        recorder = null
+        //recorder?.release()
+        //recorder = null
         EventBus.getDefault().unregister(this);
         Log.e(TAG, "On stop triggered")
     }
-
 }

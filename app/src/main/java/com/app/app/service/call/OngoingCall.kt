@@ -22,8 +22,7 @@ object OngoingCall {
     private val callback = object : Call.Callback() {
         override fun onStateChanged(call: Call, newState: Int) {
             //Log.e(TAG, "OngoingCall state changed newstate $newState")
-
-            val data = hashMapOf(
+            val data = mapOf(
                 "state" to call.state
             )
             Log.e(TAG, "state changed ${call.state}")
