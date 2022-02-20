@@ -31,11 +31,13 @@ import android.os.*
 import android.widget.ImageView
 import android.content.Intent
 import android.location.Location
+import android.media.CamcorderProfile.getAll
 import android.telecom.Call
 
 import android.telecom.TelecomManager
 import android.view.WindowManager
 import android.widget.LinearLayout
+import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
 import androidx.core.net.toUri
 import com.app.app.R
@@ -43,6 +45,7 @@ import com.app.app.dialog.call.CallDialog
 import com.app.app.dto.EventObject
 import com.app.app.dto.EventType
 import com.app.app.exception.SmsException
+import com.app.app.service.call.Contact
 import com.app.app.service.gps.GpsService
 import com.app.app.service.vibrator.VibratorService
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -56,30 +59,16 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     val MESSAGE_KO = "Salut, j'ai un souci"
     var MESSAGE_SOS = "Alerte SOS \n Dispositif, localisation suivante : "
 
-    var number1 = "0766006439"
-    var number2 = "0621585966"
-    val numbers = arrayOf(number2, number1)
-
-    val numbersMap = mapOf<String, String>(
-        "Alexandre" to "0621585966",
-        "Emmanuel" to "0766006439"
-    )
-
     val SENDING = false
 
-    val BUILT_IN_CALL = true
-    var db = FirebaseFirestore.getInstance()
     val TAG = "manu"
-    var i = 0
-    var configListener: ListenerRegistration? = null
-    var notifListener: ListenerRegistration? = null
 
     // audio recording
     var isRecording = false
     var recorder: MediaRecorder? = null
-    var FILE_NAME : String = ""
-    var OUTPUT_DIR : String = ""
-    val pop = AudioRecordingDialog()
+    //var FILE_NAME : String = ""
+    //var OUTPUT_DIR : String = ""
+    //val pop = AudioRecordingDialog()
 
     var tts: TextToSpeech? = null
 
@@ -101,9 +90,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         tts = TextToSpeech(this, this)
         Log.e(TAG, "default engine ${tts!!.defaultEngine}")
-        val voice = Voice("en-us-x-sfg#male_2-local", Locale.US, Voice.QUALITY_VERY_HIGH, Voice.LATENCY_NORMAL, false, null)
-        tts!!.setVoice(voice)
-        Log.e(TAG, "tts voice ${tts!!.voice}")
+        //val voice = Voice("en-us-x-sfg#male_2-local", Locale.US, Voice.QUALITY_VERY_HIGH, Voice.LATENCY_NORMAL, false, null)
+        //tts!!.setVoice(voice)
 
         // audio recording
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -113,23 +101,26 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 Manifest.permission.WRITE_EXTERNAL_STORAGE), 0);
         }
         //filename = "${externalCacheDir?.absolutePath}/vocal.3gp"
-        FILE_NAME = "audio.3gp"
+        //FILE_NAME = "audio.3gp"
         // Android/data/com.app.app/cache/audio.3gp
-        OUTPUT_DIR = externalCacheDir?.absolutePath.toString()
-        OUTPUT_DIR = getExternalFilesDir(null)?.absolutePath.toString()
+        //OUTPUT_DIR = externalCacheDir?.absolutePath.toString()
+        //OUTPUT_DIR = getExternalFilesDir(null)?.absolutePath.toString()
 
         // call card on click
         findViewById<LinearLayout>(R.id.callCard1).setOnClickListener {
-            numbersMap["Emmanuel"]?.let { it -> call(it) }
+            call(Contact.Emmanuel.number)
         }
         findViewById<LinearLayout>(R.id.callCard2).setOnClickListener {
-            numbersMap["Alexandre"]?.let { it -> call(it) }
+            call(Contact.Alexandre.number)
         }
 
         callService = CallService()
         smsService = SmsService(this)
         vibratorService = VibratorService(this)
         gpsService = GpsService(this)
+
+        val numbers = Contact.getAll()
+        Log.e(TAG, "numbers ${numbers[0]}")
     }
 
     override fun onStart() {
@@ -148,13 +139,13 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     @RequiresApi(Build.VERSION_CODES.S)
     fun sendOk(@Suppress("UNUSED_PARAMETER") view: View) {
         Log.e("manu", "send OK")
-        sendSms(numbers, MESSAGE_OK)
+        sendSms(Contact.getAll(), MESSAGE_OK)
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
     fun sendKo(@Suppress("UNUSED_PARAMETER") view: View) {
         Log.e("manu", "send KO")
-        sendSms(numbers, MESSAGE_KO)
+        sendSms(Contact.getAll(), MESSAGE_KO)
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
@@ -167,7 +158,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 //val mapUrl = "https://www.google.com/maps/@${loc?.latitude},${loc?.longitude},20z"
                 val mapUrl = "https://www.google.com/maps/search/?api=1&query=${loc?.latitude},${loc?.longitude}"
                 Log.e(TAG, "mapUrl $mapUrl")
-                sendSms(numbers, "$MESSAGE_SOS $mapUrl")
+                sendSms(Contact.getAll(), "$MESSAGE_SOS $mapUrl")
             }
             ?.addOnFailureListener {
                 Log.e(TAG, "error")
@@ -306,7 +297,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     @RequiresApi(Build.VERSION_CODES.S)
     fun record(@Suppress("UNUSED_PARAMETER") view: View) {
-        Log.e(TAG, "into record")
+/*        Log.e(TAG, "into record")
         if (isRecording) {
             Log.e(TAG, "already recording !!!!")
             return
@@ -323,10 +314,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             micro.setColorFilter(Color.DKGRAY)
             isRecording = false
             stopRecording()
-        }, 5000)
+        }, 5000)*/
     }
 
-    private fun startRecording() {
+/*    private fun startRecording() {
         Log.e(TAG, "startRecording()")
         recorder = MediaRecorder().apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
@@ -341,7 +332,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             }
             start()
         }
-    }
+    }*/
 
     fun stopRecording() {
         Log.e(TAG, "stop recording")
@@ -353,7 +344,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         recorder = null
 
         try {
-            smsService?.sendMms(number1, OUTPUT_DIR, FILE_NAME)
+            //smsService?.sendMms(number1, OUTPUT_DIR, FILE_NAME)
         } catch(e: Exception) {
             Log.e(TAG, "$e")
         }
@@ -393,14 +384,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     override fun onDestroy() {
         super.onDestroy()
         Log.d(TAG, "on destroy Removing snapshot")
-        configListener?.remove()
-        notifListener?.remove()
     }
 
     override fun onStop() {
         super.onStop()
-        notifListener?.remove()
-        configListener?.remove()
         recorder?.release()
         recorder = null
         EventBus.getDefault().unregister(this);
