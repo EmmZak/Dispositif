@@ -106,11 +106,17 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         //OUTPUT_DIR = externalCacheDir?.absolutePath.toString()
         //OUTPUT_DIR = getExternalFilesDir(null)?.absolutePath.toString()
 
-        // call card on click
-        findViewById<LinearLayout>(R.id.callCard1).setOnClickListener {
+        // call card on click TABLETT
+/*        findViewById<LinearLayout>(R.id.callCard1).setOnClickListener {
             call(Contact.Emmanuel.number)
         }
         findViewById<LinearLayout>(R.id.callCard2).setOnClickListener {
+            call(Contact.Alexandre.number)
+        }*/
+        findViewById<ImageView>(R.id.callCard1).setOnClickListener {
+            call(Contact.Emmanuel.number)
+        }
+        findViewById<ImageView>(R.id.callCard2).setOnClickListener {
             call(Contact.Alexandre.number)
         }
 
@@ -150,14 +156,15 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     @RequiresApi(Build.VERSION_CODES.S)
     fun sendSOS(@Suppress("UNUSED_PARAMETER") view: View) {
-        Log.e("manu", "send SOS")
+        Log.e(TAG, "send SOS")
         // fetch gps localisation
-        gpsService?.getLocationUrl()
+        gpsService?.getLocation()
             ?.addOnSuccessListener { loc : Location? ->
                 Log.e(TAG, "location $loc")
                 //val mapUrl = "https://www.google.com/maps/@${loc?.latitude},${loc?.longitude},20z"
                 val mapUrl = "https://www.google.com/maps/search/?api=1&query=${loc?.latitude},${loc?.longitude}"
                 Log.e(TAG, "mapUrl $mapUrl")
+                Log.e(TAG, "res mapUrl $mapUrl")
                 sendSms(Contact.getAll(), "$MESSAGE_SOS $mapUrl")
             }
             ?.addOnFailureListener {
@@ -217,7 +224,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onEvent(eventObject: EventObject) {
-        Log.e(TAG, "event fun $eventObject")
+        Log.e(TAG, "OnEvent event object $eventObject")
         when(eventObject.type) {
             EventType.CALL -> onCallEvent(eventObject)
             EventType.TTS -> onMessageEvent(eventObject)
@@ -230,7 +237,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             val state = Integer.parseInt(eventObject.data["state"].toString())
             Log.e(TAG, "received call event $state")
             // 1
-            if (state == Call.STATE_DIALING) {
+            if (state == Call.STATE_DIALING || state == Call.STATE_CONNECTING) {
                 Log.e(TAG, "Dialing ...")
                 callDialog = CallDialog.newInstance("Emmanuel", "Appel en cours ...", 1)
                 callDialog!!.isCancelable = false
@@ -254,7 +261,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 Log.e(TAG, "In Call ...")
                 //callDialog = CallDialog.newInstance("Emmanuel", "En appel avec")
                 if (callDialog != null) {
-                    callDialog!!.updateUI( "Emmanuel", "En appel avec", 1)
+                    callDialog!!.updateUI( "Emmanuel", "En appel avec ...", 1)
                 } else {
                     Log.e(TAG, "callDialog is null creating one")
                     callDialog = CallDialog.newInstance("Emmanuel", "En appel avec ...", 1)
@@ -279,15 +286,16 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             val text = eventObject.data["message"].toString()
             tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
 
-            gpsService?.getLocationUrl()
+            val res = gpsService?.getLocation()
+            Log.e(TAG, "res $res")
+            gpsService?.getLocation()
                 ?.addOnSuccessListener { loc : Location? ->
                     Log.e(TAG, "location $loc")
                     //val mapUrl = "https://www.google.com/maps/@${loc?.latitude},${loc?.longitude},20z"
                     val mapUrl = "https://www.google.com/maps/search/?api=1&query=${loc?.latitude},${loc?.longitude}"
                     Log.e(TAG, "mapUrl $mapUrl")
-                    val number = eventObject.data["number"]
-                    val numberArray = arrayOf<String>(number as String)
-                    sendSms(numberArray, "$MESSAGE_SOS $mapUrl")
+                    Log.e(TAG, "res mapUrl $mapUrl")
+                    sendSms(Contact.getAll(), "$MESSAGE_SOS $mapUrl")
                 }
                 ?.addOnFailureListener {
                     Log.e(TAG, "error")

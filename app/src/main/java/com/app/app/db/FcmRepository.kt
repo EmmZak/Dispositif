@@ -14,6 +14,7 @@ class FcmRepository {
         val data = hashMapOf(
             "token" to token
         )
+        Log.e(TAG, "saving fcm token $token")
         db.collection("apps")
             .document("communication")
             .set(data, SetOptions.merge())

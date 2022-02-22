@@ -22,13 +22,13 @@ class FCM: FirebaseMessagingService() {
 
     val fcmRepository = FcmRepository()
 
-    override fun onNewToken(token: String) {
+/*    override fun onNewToken(token: String) {
         Log.e(TAG, "Refreshed token: $token")
         // If you want to send messages to this application instance or
         // manage this apps subscriptions on the server side, send the
         // FCM registration token to your app server.
         fcmRepository.saveToken(token)
-    }
+    }*/
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
