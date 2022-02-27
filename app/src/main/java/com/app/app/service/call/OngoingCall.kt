@@ -10,7 +10,7 @@ import org.greenrobot.eventbus.EventBus
 
 object OngoingCall {
     val TAG = "manu"
-
+    /*
     //private val state: BehaviorSubject<Int> = BehaviorSubject.create()
     private var state: Int = -1
 
@@ -58,4 +58,6 @@ object OngoingCall {
     fun hangup() {
         call!!.disconnect()
     }
+    */
+
 }

@@ -104,7 +104,11 @@ class SmsService(val context: Context) {
     }
 
     private fun isSmsPermissionGranted(): Boolean {
-        return ActivityCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED
+        val granted = ActivityCompat.checkSelfPermission(
+            context,
+            Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED
+        Log.e(TAG, "sms granted $granted")
+        return granted
     }
 
     private fun requestSmsPermission() {

@@ -7,6 +7,7 @@ import android.view.View
 import androidx.core.app.ActivityCompat
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import java.lang.Exception
 import java.util.*
 import android.graphics.Color
@@ -47,6 +48,7 @@ import com.app.app.dto.EventType
 import com.app.app.exception.SmsException
 import com.app.app.service.call.Contact
 import com.app.app.service.gps.GpsService
+import com.app.app.service.permission.AppPermissionService
 import com.app.app.service.vibrator.VibratorService
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationRequest
@@ -88,18 +90,27 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         //window.setFlags(android.R.attr.windowFullscreen, android.R.attr.windowFullscreen )
         setContentView(R.layout.activity_main)
 
+        ActivityCompat.requestPermissions(this,
+            arrayOf(
+                Manifest.permission.SEND_SMS,
+                Manifest.permission.CALL_PHONE,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+                //Manifest.permission.RECORD_AUDIO,
+                //Manifest.permission.READ_EXTERNAL_STORAGE,
+                //Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ), 0);
+        if (!isDefaultDialerService()) {
+            Intent(TelecomManager.ACTION_CHANGE_DEFAULT_DIALER)
+                .putExtra(TelecomManager.EXTRA_CHANGE_DEFAULT_DIALER_PACKAGE_NAME, packageName)
+                .let(::startActivity)
+        }
+
         tts = TextToSpeech(this, this)
         Log.e(TAG, "default engine ${tts!!.defaultEngine}")
         //val voice = Voice("en-us-x-sfg#male_2-local", Locale.US, Voice.QUALITY_VERY_HIGH, Voice.LATENCY_NORMAL, false, null)
         //tts!!.setVoice(voice)
 
-        // audio recording
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(
-                Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE), 0);
-        }
         //filename = "${externalCacheDir?.absolutePath}/vocal.3gp"
         //FILE_NAME = "audio.3gp"
         // Android/data/com.app.app/cache/audio.3gp
@@ -107,17 +118,21 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         //OUTPUT_DIR = getExternalFilesDir(null)?.absolutePath.toString()
 
         // call card on click TABLETT
-/*        findViewById<LinearLayout>(R.id.callCard1).setOnClickListener {
-            call(Contact.Emmanuel.number)
-        }
-        findViewById<LinearLayout>(R.id.callCard2).setOnClickListener {
-            call(Contact.Alexandre.number)
-        }*/
-        findViewById<ImageView>(R.id.callCard1).setOnClickListener {
-            call(Contact.Emmanuel.number)
-        }
-        findViewById<ImageView>(R.id.callCard2).setOnClickListener {
-            call(Contact.Alexandre.number)
+        val TABLET_MODE = true
+        if (TABLET_MODE) {
+            findViewById<LinearLayout>(R.id.callCard1).setOnClickListener {
+                call(Contact.Emmanuel.number)
+            }
+            findViewById<LinearLayout>(R.id.callCard2).setOnClickListener {
+                call(Contact.Alexandre.number)
+            }
+        } else {
+            findViewById<ImageView>(R.id.callCard1).setOnClickListener {
+                call(Contact.Emmanuel.number)
+            }
+            findViewById<ImageView>(R.id.callCard2).setOnClickListener {
+                call(Contact.Alexandre.number)
+            }
         }
 
         callService = CallService()
@@ -136,6 +151,33 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         Log.e(TAG, "On start after replaceDefaultDialer")
 
         EventBus.getDefault().register(this);
+    }
+
+    private fun setupPermissions() {
+        // sms
+        Log.e(TAG, "check sms permission")
+        if (AppPermissionService.isSmsPermissionGranted(this)) {
+            Log.e(TAG, "sms permission not granted")
+            AppPermissionService.requestSmsPermission(this)
+        }
+        // call
+        if (AppPermissionService.isPhoneCallGranted(this)) {
+            AppPermissionService.requestPhoneCallPermission(this)
+        }
+        /*
+        // audio
+        if (AppPermissionService.isRecordAudioPermissionGranted(this)) {
+            AppPermissionService.requestRecordAudioPermission(this)
+        }
+        // storage read
+        if (AppPermissionService.isStorageReadPermissionGranted(this)) {
+            AppPermissionService.requestStorageReadPermission(this)
+        }
+        // storage write
+        if (AppPermissionService.isStorageWritePermissionGranted(this)) {
+            AppPermissionService.requestStorageWritePermission(this)
+        }
+         */
     }
 
     override fun isFinishing(): Boolean {
@@ -197,7 +239,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             val uri = "tel:$number".toUri()
             Log.e(TAG, "starting ACTION CALL activity with uri ${uri.toString()}")
             try {
-                startActivity(Intent(Intent.ACTION_CALL, uri))
+                if (isDefaultDialerService()) {
+                    tts!!.speak("L'application n'est pas configurée pour l'appel", TextToSpeech.QUEUE_ADD, null, "")
+                } else {
+                    startActivity(Intent(Intent.ACTION_CALL, uri))
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "call e $e")
             }
@@ -224,7 +270,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onEvent(eventObject: EventObject) {
-        Log.e(TAG, "OnEvent event object $eventObject")
+        //Log.e(TAG, "OnEvent event object $eventObject")
         when(eventObject.type) {
             EventType.CALL -> onCallEvent(eventObject)
             EventType.TTS -> onMessageEvent(eventObject)
@@ -235,35 +281,36 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private fun onCallEvent(eventObject: EventObject) {
         if (eventObject.type == EventType.CALL) {
             val state = Integer.parseInt(eventObject.data["state"].toString())
-            Log.e(TAG, "received call event $state")
-            // 1
-            if (state == Call.STATE_DIALING || state == Call.STATE_CONNECTING) {
-                Log.e(TAG, "Dialing ...")
+            Log.e(TAG, "received call state $state")
+
+            // Outgoing call
+            if (state == Call.STATE_CONNECTING /* == 9 */) {
+                //Log.e(TAG, "Dialing ...")
                 callDialog = CallDialog.newInstance("Emmanuel", "Appel en cours ...", 1)
                 callDialog!!.isCancelable = false
                 (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
             }
-            // 7
-            if (state == Call.STATE_DISCONNECTED) {
-                Log.e(TAG, "Closing ...")
-                callDialog?.dismiss()
-            }
-            // 2
-            if (state == Call.STATE_RINGING) {
+            // Incoming call
+            if (state == Call.STATE_RINGING /* == 2 */) {
                 Log.e(TAG, "Incoming ...")
                 callDialog?.dismiss()
                 callDialog = CallDialog.newInstance("Emmanuel", "Appel entrant ...", 2)
                 callDialog!!.isCancelable = false
                 (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
             }
-            // 4
-            if (state == Call.STATE_ACTIVE) {
+            // Disconnect
+            if (state == Call.STATE_DISCONNECTED /* == 7 */) {
+                //Log.e(TAG, "Closing ...")
+                callDialog?.dismiss()
+            }
+            // In Call
+            if (state == Call.STATE_ACTIVE /* == 4 */) {
                 Log.e(TAG, "In Call ...")
                 //callDialog = CallDialog.newInstance("Emmanuel", "En appel avec")
                 if (callDialog != null) {
                     callDialog!!.updateUI( "Emmanuel", "En appel avec ...", 1)
                 } else {
-                    Log.e(TAG, "callDialog is null creating one")
+                    //Log.e(TAG, "callDialog is null creating one")
                     callDialog = CallDialog.newInstance("Emmanuel", "En appel avec ...", 1)
                     callDialog!!.isCancelable = false
                     (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
@@ -292,6 +339,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 ?.addOnSuccessListener { loc : Location? ->
                     Log.e(TAG, "location $loc")
                     //val mapUrl = "https://www.google.com/maps/@${loc?.latitude},${loc?.longitude},20z"
+
                     val mapUrl = "https://www.google.com/maps/search/?api=1&query=${loc?.latitude},${loc?.longitude}"
                     Log.e(TAG, "mapUrl $mapUrl")
                     Log.e(TAG, "res mapUrl $mapUrl")
@@ -376,6 +424,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
+    private fun isDefaultDialerService(): Boolean {
+        return getSystemService(TelecomManager::class.java).defaultDialerPackage != packageName
+    }
+
     private fun offerReplacingDefaultDialer() {
         try {
             Log.e(TAG, "before")
@@ -383,6 +435,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             Log.e(TAG, "default vs package, $default vs $packageName")
             if (default != packageName) {
                 Log.e(TAG, "inside")
+
                 Intent(TelecomManager.ACTION_CHANGE_DEFAULT_DIALER)
                     .putExtra(TelecomManager.EXTRA_CHANGE_DEFAULT_DIALER_PACKAGE_NAME, packageName)
                     .let(::startActivity)

@@ -10,6 +10,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.fragment.app.DialogFragment
 import com.app.app.R
+import com.app.app.service.call.CallService
 import com.app.app.service.call.OngoingCall
 import java.lang.Exception
 
@@ -29,7 +30,7 @@ class CallDialog : DialogFragment() {
             name = it.getString(NAME_PARAM).toString()
             text = it.getString(TEXT_PARAM).toString()
             options = it.getInt(OPTIONS_PARAM)
-            Log.e(TAG, "call dialog setting name $name")
+            //Log.e(TAG, "call dialog setting name $name")
         }
     }
 
@@ -50,15 +51,15 @@ class CallDialog : DialogFragment() {
     }
 
     fun updateUI(view: View, name: String, text: String, options: Int) {
-        Log.e(TAG, "updating with $name $text")
+        //Log.e(TAG, "updating with $name $text")
         view.findViewById<TextView>(R.id.callDialogText)?.text = text
         view.findViewById<TextView>(R.id.callDialogName)?.text = name
 
         val hangup = view.findViewById<Button>(R.id.hangupButton)
         hangup.setOnClickListener{
-            Log.e(TAG, "incomingCall : hangup")
+            //Log.e(TAG, "incomingCall : hangup")
             try {
-                OngoingCall.hangup()
+                CallService.hangup()
             } catch(e: Exception) {
                 Log.e(TAG, "$e")
             }
@@ -78,9 +79,9 @@ class CallDialog : DialogFragment() {
             reply.visibility = View.GONE
         } else {
             reply.setOnClickListener{
-                Log.e(TAG, "incomingCall : reply")
+                //Log.e(TAG, "incomingCall : reply")
                 try {
-                    OngoingCall.answer()
+                    CallService.answer()
                 } catch(e: Exception) {
                     Log.e(TAG, "$e")
                 }

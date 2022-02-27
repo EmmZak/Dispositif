@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.telecom.Call
 import android.telecom.CallAudioState
 import android.telecom.InCallService
+import android.telecom.VideoProfile
 import android.util.Log
 import androidx.constraintlayout.motion.widget.Debug.getState
 import androidx.fragment.app.FragmentManager
@@ -16,29 +17,26 @@ class CallService : InCallService() {
     val TAG = "manu CallService"
 
     /**
-     * This service handles
+     * This callback handles
      *      Incoming Call -> Call.STATE_RINGING -> 2
+     *      Outgoing Call -> Call.CONNECTING -> 9
      */
     override fun onCallAdded(call: Call) {
-        Log.e(TAG,"onCallAdded  $call ")
-        Log.e(TAG,"onCallAdded code ${call.state}")
-        Log.e(TAG, "emmanuel OngoingCall.call before ${OngoingCall.call}")
-        OngoingCall.call = call
-        Log.e(TAG, "emmanuel OngoingCall.call after ${OngoingCall.call}")
+        Log.e(TAG,"onCallAdded state ${call.state}  $call ")
+        CallService.call = call
 
-        Log.e(TAG, "incoming call detected, going to emit")
-
-        Log.e(TAG, "${call.state} == ${Call.STATE_RINGING}")
-/*        if (call.state == Call.STATE_RINGING){
-            emit(call)
-        }*/
+        emit(call)
     }
 
+    /**
+     * This callback handles
+     *      Call Ended -> Call.DISCONNECTED ->
+     */
     override fun onCallRemoved(call: Call) {
-        Log.e(TAG,"onCallRemoved $call")
-        OngoingCall.call = null
+        Log.e(TAG,"onCallRemoved state ${call.state} $call")
+        CallService.call = null
 
-        //emit(call)
+        emit(call)
     }
 
     private fun emit(call: Call) {
@@ -47,5 +45,61 @@ class CallService : InCallService() {
         )
         val o = EventObject(EventType.CALL, data as Map<String, Any>)
         EventBus.getDefault().post(o)
+    }
+
+    companion object {
+        val TAG = "CallService.static"
+        var state: Int = -1
+
+        var call: Call? = null
+            set(value) {
+                field?.unregisterCallback(callback)
+                value?.let {
+                    it.registerCallback(callback)
+                    state = it.state
+                }
+                field = value
+            }
+
+        /**
+         * This callback handles call state
+         * when communication is established
+         */
+        private val callback = object : Call.Callback() {
+            override fun onStateChanged(call: Call, newState: Int) {
+                Log.e(TAG, "callback state changed $newState")
+                emit(call)
+            }
+        }
+
+        fun emit(call: Call?) {
+            var state = Call.STATE_DISCONNECTING
+
+            if (call != null) {
+                state = call.state
+            }
+
+            val data = hashMapOf(
+                "state" to state
+            )
+            val o = EventObject(EventType.CALL, data as Map<String, Any>)
+            EventBus.getDefault().post(o)
+        }
+
+        fun answer() {
+            try {
+                call!!.answer(VideoProfile.STATE_AUDIO_ONLY)
+            } catch (e: Exception) {
+                Log.e(TAG, "error while answering $e")
+            }
+        }
+
+        fun hangup() {
+            try {
+                call!!.disconnect()
+            } catch (e: Exception) {
+                Log.e(TAG, "error while disconnecting $e")
+            }
+        }
     }
 }
