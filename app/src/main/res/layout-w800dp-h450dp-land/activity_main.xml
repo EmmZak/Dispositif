@@ -30,8 +30,9 @@
                 android:layout_width="0dp"
                 android:layout_height="250dp"
                 android:layout_weight="6.6666665"
-                android:onClick="sendOk"
-                app:srcCompat="@drawable/ic_happy" />
+                android:onClick="sendNotif"
+                app:srcCompat="@drawable/ic_happy"
+                android:tag="OK"/>
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -63,8 +64,9 @@
                 android:layout_width="0dp"
                 android:layout_height="250dp"
                 android:layout_weight="6.6666665"
-                android:onClick="sendKo"
-                app:srcCompat="@drawable/ic_sad" />
+                android:onClick="sendNotif"
+                app:srcCompat="@drawable/ic_sad"
+                android:tag="KO"/>
 
         </LinearLayout>
 
@@ -119,7 +121,8 @@
                     android:layout_width="0dp"
                     android:layout_height="200dp"
                     android:layout_weight="1"
-                    android:onClick="sendSOS"
+                    android:onClick="sendNotif"
+                    android:tag="SOS"
                     app:srcCompat="@drawable/ic_sos" />
 
                 <LinearLayout

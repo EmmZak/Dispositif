@@ -62,7 +62,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     val MESSAGE_KO = "Salut, j'ai un souci"
     var MESSAGE_SOS = "Alerte SOS \n Dispositif, localisation suivante : "
 
-    val SENDING = false
+    var SENDING = false
 
     val TAG = "manu"
 
@@ -185,37 +185,27 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         return super.isFinishing()
     }
 
-    @RequiresApi(Build.VERSION_CODES.S)
-    fun sendOk(@Suppress("UNUSED_PARAMETER") view: View) {
-        Log.e("manu", "send OK")
-        sendSms(Contact.getAll(), MESSAGE_OK)
+    fun sendNotif(view: View) {
+        Log.e(TAG, "tag ${view.tag}")
+        when(view.tag) {
+            "OK" -> sendSms(Contact.getAll(), MESSAGE_OK)
+            "KO" -> sendSms(Contact.getAll(), MESSAGE_KO)
+            "SOS" -> gpsService?.getLocation()
+                        ?.addOnSuccessListener { loc : Location? ->
+                            Log.e(TAG, "location $loc")
+                            //val mapUrl = "https://www.google.com/maps/@${loc?.latitude},${loc?.longitude},20z"
+                            val mapUrl = "https://www.google.com/maps/search/?api=1&query=${loc?.latitude},${loc?.longitude}"
+                            Log.e(TAG, "mapUrl $mapUrl")
+                            Log.e(TAG, "res mapUrl $mapUrl")
+                            sendSms(Contact.getAll(), "$MESSAGE_SOS $mapUrl")
+                        }
+                        ?.addOnFailureListener {
+                            Log.e(TAG, "error")
+                        }
+        }
     }
 
-    @RequiresApi(Build.VERSION_CODES.S)
-    fun sendKo(@Suppress("UNUSED_PARAMETER") view: View) {
-        Log.e("manu", "send KO")
-        sendSms(Contact.getAll(), MESSAGE_KO)
-    }
-
-    @RequiresApi(Build.VERSION_CODES.S)
-    fun sendSOS(@Suppress("UNUSED_PARAMETER") view: View) {
-        Log.e(TAG, "send SOS")
-        // fetch gps localisation
-        gpsService?.getLocation()
-            ?.addOnSuccessListener { loc : Location? ->
-                Log.e(TAG, "location $loc")
-                //val mapUrl = "https://www.google.com/maps/@${loc?.latitude},${loc?.longitude},20z"
-                val mapUrl = "https://www.google.com/maps/search/?api=1&query=${loc?.latitude},${loc?.longitude}"
-                Log.e(TAG, "mapUrl $mapUrl")
-                Log.e(TAG, "res mapUrl $mapUrl")
-                sendSms(Contact.getAll(), "$MESSAGE_SOS $mapUrl")
-            }
-            ?.addOnFailureListener {
-                Log.e(TAG, "error")
-            }
-    }
-
-    fun sendSms(number: Array<String>, text: String) {
+    private fun sendSms(number: Array<String>, text: String) {
         var message = ""
         try {
             smsService?.sendSms(number, text)
