@@ -51,7 +51,7 @@ class CallDialog : DialogFragment() {
     }
 
     fun updateUI(view: View, name: String, text: String, options: Int) {
-        //Log.e(TAG, "updating with $name $text")
+        Log.e(TAG, " updating with $name $text")
         view.findViewById<TextView>(R.id.callDialogText)?.text = text
         view.findViewById<TextView>(R.id.callDialogName)?.text = name
 
@@ -63,7 +63,7 @@ class CallDialog : DialogFragment() {
             } catch(e: Exception) {
                 Log.e(TAG, "$e")
             }
-            dismiss()
+            //dismiss()
         }
 
         val reply = view.findViewById<Button>(R.id.replyButton)

@@ -38,6 +38,7 @@ import android.telecom.Call
 import android.telecom.TelecomManager
 import android.view.WindowManager
 import android.widget.LinearLayout
+import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
 import androidx.core.net.toUri
@@ -118,7 +119,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         //OUTPUT_DIR = getExternalFilesDir(null)?.absolutePath.toString()
 
         // call card on click TABLETT
-        val TABLET_MODE = true
+
         if (TABLET_MODE) {
             findViewById<LinearLayout>(R.id.callCard1).setOnClickListener {
                 call(Contact.Emmanuel.number)
@@ -293,24 +294,37 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             // Incoming call
             if (state == Call.STATE_RINGING /* == 2 */) {
                 Log.e(TAG, "Incoming ...")
-                callDialog?.dismiss()
-                callDialog = CallDialog.newInstance("Emmanuel", "Appel entrant ...", 2)
-                callDialog!!.isCancelable = false
-                (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
+                val replySwitch = findViewById<SwitchCompat>(R.id.autoReplySwitch)
+                Log.e(TAG, "replySWitch $replySwitch")
+
+                if (replySwitch.isChecked) {
+                    try {
+                        CallService.answer()
+                    } catch(e: Exception) {
+                        Log.e(TAG, "$e")
+                    }
+                } else {
+                     callDialog?.dismiss()
+                     callDialog = CallDialog.newInstance("Emmanuel", "Appel entrant ...", 2)
+                     callDialog!!.isCancelable = false
+                     (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
+                }
             }
             // Disconnect
             if (state == Call.STATE_DISCONNECTED /* == 7 */) {
                 //Log.e(TAG, "Closing ...")
                 callDialog?.dismiss()
+                callDialog = null
             }
             // In Call
             if (state == Call.STATE_ACTIVE /* == 4 */) {
                 Log.e(TAG, "In Call ...")
                 //callDialog = CallDialog.newInstance("Emmanuel", "En appel avec")
                 if (callDialog != null) {
+                    Log.e(TAG, "Updating in call dialog")
                     callDialog!!.updateUI( "Emmanuel", "En appel avec ...", 1)
                 } else {
-                    //Log.e(TAG, "callDialog is null creating one")
+                    Log.e(TAG, "callDialog is null creating one")
                     callDialog = CallDialog.newInstance("Emmanuel", "En appel avec ...", 1)
                     callDialog!!.isCancelable = false
                     (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
@@ -353,6 +367,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     companion object {
         const val REQUEST_PERMISSION = 0
+        const val TABLET_MODE = true
     }
 
     @RequiresApi(Build.VERSION_CODES.S)

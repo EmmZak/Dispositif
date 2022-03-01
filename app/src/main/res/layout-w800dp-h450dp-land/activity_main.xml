@@ -20,43 +20,49 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:orientation="horizontal"
             android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:weightSum="20"
             tools:layout_editor_absoluteX="0dp">
 
             <ImageView
                 android:id="@+id/imageView2"
                 android:layout_width="0dp"
                 android:layout_height="250dp"
-                android:layout_weight="1"
+                android:layout_weight="6.6666665"
                 android:onClick="sendOk"
                 app:srcCompat="@drawable/ic_happy" />
 
-            <Button
-                android:id="@+id/hangupButton"
-                android:layout_width="50dp"
-                android:layout_height="100dp"
-                android:layout_weight="1"
-                android:backgroundTint="@color/common_google_signin_btn_text_dark_focused"
-                android:onClick="stopCall"
-                android:text="Stop call"
-                android:visibility="gone" />
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="6.6666665"
+                android:orientation="vertical"
+                android:gravity="center">
 
-            <Button
-                android:id="@+id/button2"
-                android:layout_width="50dp"
-                android:layout_height="100dp"
-                android:layout_weight="1"
-                android:backgroundTint="@color/common_google_signin_btn_text_dark_focused"
-                android:onClick="openCallDialog"
-                android:text="Open call dialog"
-                android:visibility="gone" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Décrochage auto"
+                    android:textSize="30sp"
+                    android:paddingBottom="20dp"/>
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/autoReplySwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_horizontal"
+                    android:scaleY="2"
+                    android:scaleX="2"
+                    />
+
+            </LinearLayout>
 
             <ImageView
                 android:id="@+id/imageView3"
                 android:layout_width="0dp"
                 android:layout_height="250dp"
-                android:layout_weight="1"
+                android:layout_weight="6.6666665"
                 android:onClick="sendKo"
                 app:srcCompat="@drawable/ic_sad" />
 
@@ -67,11 +73,11 @@
             android:layout_width="wrap_content"
             android:layout_height="0dp"
             android:layout_weight="0.7"
-            android:weightSum="20"
-            tools:layout_editor_absoluteX="0dp"
-            android:orientation="horizontal"
+            android:baselineAligned="false"
             android:gravity="center"
-            android:baselineAligned="false">
+            android:orientation="horizontal"
+            android:weightSum="20"
+            tools:layout_editor_absoluteX="0dp">
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -83,12 +89,11 @@
                 <LinearLayout
                     android:id="@+id/callCard1"
                     android:layout_width="0dp"
-                    android:layout_weight="1"
                     android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:weightSum="10"
+                    android:layout_weight="1"
                     android:gravity="center_horizontal"
-                    >
+                    android:orientation="vertical"
+                    android:weightSum="10">
 
                     <ImageView
                         android:id="@+id/callView1"
@@ -96,8 +101,7 @@
                         android:layout_height="100dp"
                         android:layout_weight="8"
                         android:rotation="270"
-                        app:srcCompat="@drawable/ic_baseline_phone_24"
-                        />
+                        app:srcCompat="@drawable/ic_baseline_phone_24" />
 
                     <TextView
                         android:id="@+id/textView1"
@@ -121,13 +125,11 @@
                 <LinearLayout
                     android:id="@+id/callCard2"
                     android:layout_width="0dp"
-                    android:layout_weight="1"
                     android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:weightSum="10"
+                    android:layout_weight="1"
                     android:gravity="center_horizontal"
-                    >
-
+                    android:orientation="vertical"
+                    android:weightSum="10">
 
 
                     <ImageView
@@ -155,8 +157,8 @@
                     android:layout_height="200dp"
                     android:layout_weight="1"
                     android:onClick="record"
-                    app:srcCompat="@drawable/ic_baseline_mic_24"
-                    android:visibility="gone"/>
+                    android:visibility="gone"
+                    app:srcCompat="@drawable/ic_baseline_mic_24" />
 
             </LinearLayout>
 
