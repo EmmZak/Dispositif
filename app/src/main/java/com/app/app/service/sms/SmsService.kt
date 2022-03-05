@@ -8,7 +8,9 @@ import android.net.Uri
 import android.telephony.SmsManager
 import android.util.Log
 import androidx.core.app.ActivityCompat
+import com.app.app.config.SMSTemplate
 import com.app.app.exception.SmsException
+import com.app.app.service.call.Contact
 import com.app.app.utils.Utils
 import java.io.File
 import java.lang.Exception
@@ -17,6 +19,22 @@ class SmsService(val context: Context) {
 
     val SENDING = false
     val TAG = "SmsService manu"
+
+    fun sendOK() {
+        sendSms(Contact.getAll(), SMSTemplate.OK.text)
+    }
+
+    fun sendKO() {
+        sendSms(Contact.getAll(), SMSTemplate.KO.text)
+    }
+
+    fun sendSOS() {
+
+    }
+
+    fun sendLocation(number: String) {
+
+    }
 
     fun sendSms(number: String, message: String) {
         if (!isSmsPermissionGranted()) {

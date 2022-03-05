@@ -8,7 +8,6 @@ import android.Manifest
 import android.annotation.SuppressLint
 import java.lang.Exception
 import java.util.*
-import android.graphics.Color
 import android.speech.tts.TextToSpeech
 import android.widget.Toast
 import com.app.app.service.call.CallService
@@ -42,14 +41,11 @@ import com.app.app.service.gps.GpsService
 import com.app.app.service.permission.AppPermissionService
 import com.app.app.service.vibrator.VibratorService
 import android.view.animation.AnimationUtils
+import com.app.app.config.Config
+import com.app.app.config.SMSTemplate
 
 
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
-
-    val MESSAGE_OK = "Salut, tout va bien"
-    val MESSAGE_KO = "Salut, j'ai un souci"
-    //var MESSAGE_SOS = "Alerte SOS. Dispositif, Nom: Zakaryan, Prénom: Emmanuel, Num Sécu: 1233433553, Médecin traitemnt: Dr Dupont, Localisation suivante : "
-    var MESSAGE_SOS = "SOS Dispositif, Zakaryan Emmanuel, Num Sécu: 1233433553, Médecin Dr Dupont, Position"
 
     var SENDING = false
 
@@ -209,17 +205,23 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     fun sendNotif(tag: String) {
         Log.e(TAG, "tag $tag")
         when(tag) {
-            "OK" -> sendSms(Contact.getAll(), MESSAGE_OK)
-            "KO" -> sendSms(Contact.getAll(), MESSAGE_KO)
+            "OK" -> sendSms(Contact.getAll(), SMSTemplate.OK.text)
+            "KO" -> sendSms(Contact.getAll(), SMSTemplate.KO.text)
             "SOS" -> gpsService?.getLocation()
                         ?.addOnSuccessListener { loc : Location? ->
                             Log.e(TAG, "location $loc")
-                            //val mapUrl = "https://www.google.com/maps/@${loc?.latitude},${loc?.longitude},20z"
                             val mapUrl = "https://www.google.com/maps/search/?api=1&query=${loc?.latitude},${loc?.longitude}"
                             Log.e(TAG, "mapUrl $mapUrl")
-                            Log.e(TAG, "res mapUrl $mapUrl")
-                            sendSms(Contact.getAll(), "$MESSAGE_SOS $mapUrl")
-                            //sendSms(Contact.getAll(), "test $mapUrl")
+                            val text1 = java.lang.String.format(SMSTemplate.ALERT.text, Config.NOM, Config.PRENOM)
+                            Log.e(TAG, "text alert $text1")
+                            val text2 = String.format(SMSTemplate.SOS.text,
+                                Config.NUM_SECU,
+                                Config.MEDECIN,
+                                mapUrl
+                            )
+                            Log.e(TAG, "text $text2")
+                            sendSms(Contact.getAll(), text1)
+                            sendSms(Contact.getAll(), text2)
                         }
                         ?.addOnFailureListener {
                             Log.e(TAG, "error")
@@ -369,7 +371,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     val mapUrl = "https://www.google.com/maps/search/?api=1&query=${loc?.latitude},${loc?.longitude}"
                     Log.e(TAG, "mapUrl $mapUrl")
                     Log.e(TAG, "res mapUrl $mapUrl")
-                    sendSms(Contact.getAll(), "$MESSAGE_SOS $mapUrl")
+                    val text = SMSTemplate.LOCATION.text.format(mapUrl)
+                    sendSms(Contact.getAll(), text)
                 }
                 ?.addOnFailureListener {
                     Log.e(TAG, "error")
