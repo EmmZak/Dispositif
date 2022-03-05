@@ -1,28 +1,20 @@
 package com.app.app.activity
 
-import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import android.util.Log
 import android.view.View
 import androidx.core.app.ActivityCompat
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Activity
 import java.lang.Exception
 import java.util.*
 import android.graphics.Color
 import android.speech.tts.TextToSpeech
-import android.speech.tts.Voice
 import android.widget.Toast
 import com.app.app.service.call.CallService
 import com.app.app.service.sms.SmsService
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ListenerRegistration
 
-import android.media.MediaRecorder
 import androidx.annotation.RequiresApi
-import com.app.app.dialog.audio.AudioRecordingDialog
-import java.io.IOException
 
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.ThreadMode
@@ -32,14 +24,12 @@ import android.os.*
 import android.widget.ImageView
 import android.content.Intent
 import android.location.Location
-import android.media.CamcorderProfile.getAll
 import android.telecom.Call
 
 import android.telecom.TelecomManager
 import android.view.WindowManager
 import android.widget.LinearLayout
 import androidx.appcompat.widget.SwitchCompat
-import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
 import androidx.core.net.toUri
 import com.app.app.R
@@ -51,16 +41,15 @@ import com.app.app.service.call.Contact
 import com.app.app.service.gps.GpsService
 import com.app.app.service.permission.AppPermissionService
 import com.app.app.service.vibrator.VibratorService
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationServices
+import android.view.animation.AnimationUtils
 
 
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     val MESSAGE_OK = "Salut, tout va bien"
     val MESSAGE_KO = "Salut, j'ai un souci"
-    var MESSAGE_SOS = "Alerte SOS \n Dispositif, localisation suivante : "
+    //var MESSAGE_SOS = "Alerte SOS. Dispositif, Nom: Zakaryan, Prénom: Emmanuel, Num Sécu: 1233433553, Médecin traitemnt: Dr Dupont, Localisation suivante : "
+    var MESSAGE_SOS = "SOS Dispositif, Zakaryan Emmanuel, Num Sécu: 1233433553, Médecin Dr Dupont, Position"
 
     var SENDING = false
 
@@ -119,22 +108,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         //OUTPUT_DIR = getExternalFilesDir(null)?.absolutePath.toString()
 
         // call card on click TABLETT
-
-        if (TABLET_MODE) {
-            findViewById<LinearLayout>(R.id.callCard1).setOnClickListener {
-                call(Contact.Emmanuel.number)
-            }
-            findViewById<LinearLayout>(R.id.callCard2).setOnClickListener {
-                call(Contact.Alexandre.number)
-            }
-        } else {
-            findViewById<ImageView>(R.id.callCard1).setOnClickListener {
-                call(Contact.Emmanuel.number)
-            }
-            findViewById<ImageView>(R.id.callCard2).setOnClickListener {
-                call(Contact.Alexandre.number)
-            }
-        }
+        setupOnClickListeners()
 
         callService = CallService()
         smsService = SmsService(this)
@@ -185,9 +159,56 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         return super.isFinishing()
     }
 
-    fun sendNotif(view: View) {
-        Log.e(TAG, "tag ${view.tag}")
-        when(view.tag) {
+    private fun setupOnClickListeners() {
+        findViewById<ImageView>(R.id.imageViewOk).setOnClickListener { view ->
+            val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_notif)
+            view.startAnimation(anim)
+
+            sendNotif(view.tag as String)
+        }
+
+        findViewById<ImageView>(R.id.imageViewKo).setOnClickListener { view ->
+            val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_notif)
+            view.startAnimation(anim)
+
+            sendNotif(view.tag as String)
+        }
+
+        findViewById<ImageView>(R.id.imageViewSos).setOnClickListener { view ->
+            val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_notif)
+            view.startAnimation(anim)
+
+            sendNotif(view.tag as String)
+        }
+
+        if (TABLET_MODE) {
+            findViewById<LinearLayout>(R.id.callCard1).setOnClickListener { view ->
+                val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_call)
+                view.startAnimation(anim)
+                call(Contact.Emmanuel.number)
+            }
+            findViewById<LinearLayout>(R.id.callCard2).setOnClickListener {view ->
+                val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_call)
+                view.startAnimation(anim)
+                call(Contact.Alexandre.number)
+            }
+        } else {
+            findViewById<ImageView>(R.id.callCard1).setOnClickListener {view ->
+                val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_call)
+                view.startAnimation(anim)
+                call(Contact.Emmanuel.number)
+            }
+            findViewById<ImageView>(R.id.callCard2).setOnClickListener {view ->
+                val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_call)
+                view.startAnimation(anim)
+                call(Contact.Alexandre.number)
+            }
+        }
+    }
+
+    fun sendNotif(tag: String) {
+        Log.e(TAG, "tag $tag")
+        when(tag) {
             "OK" -> sendSms(Contact.getAll(), MESSAGE_OK)
             "KO" -> sendSms(Contact.getAll(), MESSAGE_KO)
             "SOS" -> gpsService?.getLocation()
@@ -198,6 +219,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                             Log.e(TAG, "mapUrl $mapUrl")
                             Log.e(TAG, "res mapUrl $mapUrl")
                             sendSms(Contact.getAll(), "$MESSAGE_SOS $mapUrl")
+                            //sendSms(Contact.getAll(), "test $mapUrl")
                         }
                         ?.addOnFailureListener {
                             Log.e(TAG, "error")

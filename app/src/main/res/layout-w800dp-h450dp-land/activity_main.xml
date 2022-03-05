@@ -26,11 +26,10 @@
             tools:layout_editor_absoluteX="0dp">
 
             <ImageView
-                android:id="@+id/imageView2"
+                android:id="@+id/imageViewOk"
                 android:layout_width="0dp"
                 android:layout_height="250dp"
                 android:layout_weight="6.6666665"
-                android:onClick="sendNotif"
                 app:srcCompat="@drawable/ic_happy"
                 android:tag="OK"/>
 
@@ -60,11 +59,10 @@
             </LinearLayout>
 
             <ImageView
-                android:id="@+id/imageView3"
+                android:id="@+id/imageViewKo"
                 android:layout_width="0dp"
                 android:layout_height="250dp"
                 android:layout_weight="6.6666665"
-                android:onClick="sendNotif"
                 app:srcCompat="@drawable/ic_sad"
                 android:tag="KO"/>
 
@@ -117,11 +115,10 @@
                 </LinearLayout>
 
                 <ImageView
-                    android:id="@+id/sosView"
+                    android:id="@+id/imageViewSos"
                     android:layout_width="0dp"
                     android:layout_height="200dp"
                     android:layout_weight="1"
-                    android:onClick="sendNotif"
                     android:tag="SOS"
                     app:srcCompat="@drawable/ic_sos" />
 
