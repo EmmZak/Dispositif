@@ -5,5 +5,5 @@ enum class SMSTemplate(val text: String) {
     KO("Salut, j'ai un souci, appelle-moi dès que tu peux"),
     ALERT("Alerte SOS de %s %s"),
     SOS("Num Sécu: %s, Médecin-%s, Localisation-%s"),
-    LOCATION("Localisation {}")
+    LOCATION("Localisation %s")
 }
