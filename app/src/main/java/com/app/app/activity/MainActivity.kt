@@ -387,7 +387,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     Log.e(TAG, "mapUrl $mapUrl")
                     Log.e(TAG, "res mapUrl $mapUrl")
                     val text = SMSTemplate.LOCATION.text.format(mapUrl)
-                    sendSms(Contact.getAll(), text)
+
+                    val number = eventObject.data["number"] as String
+                    sendSms(arrayOf(number), text)
                 }
                 ?.addOnFailureListener {
                     Log.e(TAG, "error")
