@@ -32,7 +32,7 @@ class FCM: FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
-        Log.e(TAG, "${message.data}")
+        Log.e(TAG, "message.data ${message.data}")
 
         val data = hashMapOf(
             "message" to message.data["message"]

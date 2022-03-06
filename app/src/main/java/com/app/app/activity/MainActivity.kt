@@ -202,31 +202,35 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
-    fun sendNotif(tag: String) {
+    private fun sendNotif(tag: String) {
         Log.e(TAG, "tag $tag")
         when(tag) {
             "OK" -> sendSms(Contact.getAll(), SMSTemplate.OK.text)
             "KO" -> sendSms(Contact.getAll(), SMSTemplate.KO.text)
-            "SOS" -> gpsService?.getLocation()
-                        ?.addOnSuccessListener { loc : Location? ->
-                            Log.e(TAG, "location $loc")
-                            val mapUrl = "https://www.google.com/maps/search/?api=1&query=${loc?.latitude},${loc?.longitude}"
-                            Log.e(TAG, "mapUrl $mapUrl")
-                            val text1 = java.lang.String.format(SMSTemplate.ALERT.text, Config.NOM, Config.PRENOM)
-                            Log.e(TAG, "text alert $text1")
-                            val text2 = String.format(SMSTemplate.SOS.text,
-                                Config.NUM_SECU,
-                                Config.MEDECIN,
-                                mapUrl
-                            )
-                            Log.e(TAG, "text $text2")
-                            sendSms(Contact.getAll(), text1)
-                            sendSms(Contact.getAll(), text2)
-                        }
-                        ?.addOnFailureListener {
-                            Log.e(TAG, "error")
-                        }
+            "SOS" -> sendSos()
         }
+    }
+
+    fun sendSos() {
+        gpsService?.getLocation()
+            ?.addOnSuccessListener { loc : Location? ->
+                Log.e(TAG, "location $loc")
+                val mapUrl = "https://www.google.com/maps/search/?api=1&query=${loc?.latitude},${loc?.longitude}"
+                Log.e(TAG, "mapUrl $mapUrl")
+                val text1 = java.lang.String.format(SMSTemplate.ALERT.text, Config.NOM, Config.PRENOM)
+                Log.e(TAG, "text alert $text1")
+                val text2 = String.format(SMSTemplate.SOS.text,
+                    Config.NUM_SECU,
+                    Config.MEDECIN,
+                    mapUrl
+                )
+                Log.e(TAG, "text $text2")
+                sendSms(Contact.getAll(), text1)
+                sendSms(Contact.getAll(), text2)
+            }
+            ?.addOnFailureListener {
+                Log.e(TAG, "error")
+            }
     }
 
     private fun sendSms(number: Array<String>, text: String) {
@@ -285,11 +289,22 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onEvent(eventObject: EventObject) {
-        //Log.e(TAG, "OnEvent event object $eventObject")
+        Log.e(TAG, "onEvent event object $eventObject")
         when(eventObject.type) {
             EventType.CALL -> onCallEvent(eventObject)
             EventType.TTS -> onMessageEvent(eventObject)
             EventType.LOCATION -> onLocationEvent(eventObject)
+            EventType.SOS -> onSosEvent(eventObject)
+        }
+    }
+
+    private fun onSosEvent(eventObject: EventObject) {
+        if (eventObject.type == EventType.SOS) {
+            Log.e(TAG, "$eventObject")
+            val text = "Une alerte SOS va être envoyée"
+            tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
+
+            sendSos()
         }
     }
 
