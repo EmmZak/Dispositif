@@ -12,69 +12,22 @@
         android:orientation="vertical"
         android:weightSum="10"
         >
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="2.5"
-            android:gravity="center"
-            android:orientation="horizontal"
-            app:layout_constraintTop_toTopOf="parent">
-
             <ImageView
-                android:id="@+id/imageViewOk"
-                android:layout_width="150dp"
-                android:layout_height="150dp"
-                android:layout_marginStart="0dp"
-                android:layout_marginTop="0dp"
-                android:layout_marginEnd="0dp"
-                android:layout_weight="0.4"
-                app:srcCompat="@drawable/ic_happy"
-                android:tag="OK" />
-
-            <ImageView
-                android:id="@+id/imageViewKo"
-                android:layout_width="150dp"
-                android:layout_height="150dp"
-                android:layout_marginStart="0dp"
-                android:layout_marginTop="0dp"
-                android:layout_marginEnd="0dp"
-                android:layout_weight="0.4"
-                app:srcCompat="@drawable/ic_sad"
-                android:tag="KO" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="7.5"
-            android:gravity="center_horizontal"
-            android:orientation="vertical">
-
-            <ImageView
-                android:id="@+id/callCard1"
+                android:id="@+id/callIcon1"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_weight="1.8"
-                app:srcCompat="@mipmap/ic_family_foreground" />
-
-            <ImageView
-                android:id="@+id/callCard2"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1.5"
-                app:srcCompat="@mipmap/ic_doctor_2" />
+                android:layout_weight="6"
+                app:srcCompat="@drawable/ic_baseline_phone_24"
+                android:tag="CALL"/>
 
             <ImageView
                 android:id="@+id/sos"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_weight="1"
+                android:layout_weight="4"
                 android:paddingBottom="5dp"
                 app:srcCompat="@drawable/ic_sos"
                 android:tag="SOS"/>
-
-        </LinearLayout>
 
     </LinearLayout>
 

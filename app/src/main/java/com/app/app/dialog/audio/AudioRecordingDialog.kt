@@ -11,8 +11,8 @@ import com.app.app.R
 
 class AudioRecordingDialog : DialogFragment() {
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        var rootView: View = inflater.inflate(R.layout.audio_recording_dialog, container, false)
-        return rootView
-    }
+//    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+//        var rootView: View = inflater.inflate(R.layout.audio_recording_dialog, container, false)
+//        return rootView
+//    }
 }

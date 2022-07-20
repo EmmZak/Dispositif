@@ -58,7 +58,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     //var OUTPUT_DIR : String = ""
     //val pop = AudioRecordingDialog()
 
-    var tts: TextToSpeech? = null
+    //var tts: TextToSpeech? = null
 
     // services
     var smsService: SmsService? = null
@@ -92,8 +92,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 .let(::startActivity)
         }
 
-        tts = TextToSpeech(this, this)
-        Log.e(TAG, "default engine ${tts!!.defaultEngine}")
+        //tts = TextToSpeech(this, this)
+        //Log.e(TAG, "default engine ${tts!!.defaultEngine}")
         //val voice = Voice("en-us-x-sfg#male_2-local", Locale.US, Voice.QUALITY_VERY_HIGH, Voice.LATENCY_NORMAL, false, null)
         //tts!!.setVoice(voice)
 
@@ -156,50 +156,20 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun setupOnClickListeners() {
-        findViewById<ImageView>(R.id.imageViewOk).setOnClickListener { view ->
-            val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_notif)
+
+//        findViewById<ImageView>(R.id.imageViewSos).setOnClickListener { view ->
+//            val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_notif)
+//            view.startAnimation(anim)
+//
+//            sendNotif(view.tag as String)
+//        }
+
+        findViewById<ImageView>(R.id.callIcon1).setOnClickListener { view ->
+            val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_call)
             view.startAnimation(anim)
-
-            sendNotif(view.tag as String)
+            call(Contact.Emmanuel.number)
         }
 
-        findViewById<ImageView>(R.id.imageViewKo).setOnClickListener { view ->
-            val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_notif)
-            view.startAnimation(anim)
-
-            sendNotif(view.tag as String)
-        }
-
-        findViewById<ImageView>(R.id.imageViewSos).setOnClickListener { view ->
-            val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_notif)
-            view.startAnimation(anim)
-
-            sendNotif(view.tag as String)
-        }
-
-        if (TABLET_MODE) {
-            findViewById<LinearLayout>(R.id.callCard1).setOnClickListener { view ->
-                val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_call)
-                view.startAnimation(anim)
-                call(Contact.Emmanuel.number)
-            }
-            findViewById<LinearLayout>(R.id.callCard2).setOnClickListener {view ->
-                val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_call)
-                view.startAnimation(anim)
-                call(Contact.Alexandre.number)
-            }
-        } else {
-            findViewById<ImageView>(R.id.callCard1).setOnClickListener {view ->
-                val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_call)
-                view.startAnimation(anim)
-                call(Contact.Emmanuel.number)
-            }
-            findViewById<ImageView>(R.id.callCard2).setOnClickListener {view ->
-                val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_call)
-                view.startAnimation(anim)
-                call(Contact.Alexandre.number)
-            }
-        }
     }
 
     private fun sendNotif(tag: String) {
@@ -243,7 +213,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             Log.e(TAG, "$e")
             message = "Problème lors de l'envoi de la notification"
         }
-        tts!!.speak(message, TextToSpeech.QUEUE_ADD, null, "")
+        //tts!!.speak(message, TextToSpeech.QUEUE_ADD, null, "")
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
 
@@ -259,7 +229,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             Log.e(TAG, "starting ACTION CALL activity with uri ${uri.toString()}")
             try {
                 if (isDefaultDialerService()) {
-                    tts!!.speak("L'application n'est pas configurée pour l'appel", TextToSpeech.QUEUE_ADD, null, "")
+                    //tts!!.speak("L'application n'est pas configurée pour l'appel", TextToSpeech.QUEUE_ADD, null, "")
                 } else {
                     startActivity(Intent(Intent.ACTION_CALL, uri))
                 }
@@ -302,7 +272,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         if (eventObject.type == EventType.SOS) {
             Log.e(TAG, "$eventObject")
             val text = "Une alerte SOS va être envoyée"
-            tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
+            //tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
 
             sendSos()
         }
@@ -322,22 +292,26 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             }
             // Incoming call
             if (state == Call.STATE_RINGING /* == 2 */) {
-                Log.e(TAG, "Incoming ...")
-                val replySwitch = findViewById<SwitchCompat>(R.id.autoReplySwitch)
-                Log.e(TAG, "replySWitch $replySwitch")
-
-                if (replySwitch.isChecked) {
-                    try {
-                        CallService.answer()
-                    } catch(e: Exception) {
-                        Log.e(TAG, "$e")
-                    }
-                } else {
-                     callDialog?.dismiss()
-                     callDialog = CallDialog.newInstance("Emmanuel", "Appel entrant ...", 2)
-                     callDialog!!.isCancelable = false
-                     (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
-                }
+//                Log.e(TAG, "Incoming ...")
+//                val replySwitch = findViewById<SwitchCompat>(R.id.autoReplySwitch)
+//                Log.e(TAG, "replySWitch $replySwitch")
+//
+//                if (replySwitch.isChecked) {
+//                    try {
+//                        CallService.answer()
+//                    } catch(e: Exception) {
+//                        Log.e(TAG, "$e")
+//                    }
+//                } else {
+//                     callDialog?.dismiss()
+//                     callDialog = CallDialog.newInstance("Emmanuel", "Appel entrant ...", 2)
+//                     callDialog!!.isCancelable = false
+//                     (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
+//                }
+                callDialog?.dismiss()
+                callDialog = CallDialog.newInstance("Emmanuel", "Appel entrant ...", 2)
+                callDialog!!.isCancelable = false
+                (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
             }
             // Disconnect
             if (state == Call.STATE_DISCONNECTED /* == 7 */) {
@@ -366,7 +340,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         Log.e(TAG, "onMessageEvent $eventObject")
         if (eventObject.type == EventType.TTS) {
             val text = eventObject.data["message"].toString()
-            tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
+            //tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
         }
     }
 
@@ -374,7 +348,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         Log.e(TAG, "onLocationEvent $eventObject")
         if (eventObject.type == EventType.LOCATION) {
             val text = eventObject.data["message"].toString()
-            tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
+            //tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
 
             val res = gpsService?.getLocation()
             Log.e(TAG, "res $res")
@@ -461,11 +435,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
             // set US English as language for tts
-            val result = tts!!.setLanguage(Locale.FRENCH)
-
-            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                Log.e(TAG,"The Language specified is not supported!")
-            }
+//            val result = tts!!.setLanguage(Locale.FRENCH)
+//
+//            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+//                Log.e(TAG,"The Language specified is not supported!")
+//            }
         } else {
             Log.e(TAG, "Initilization Failed!")
         }
