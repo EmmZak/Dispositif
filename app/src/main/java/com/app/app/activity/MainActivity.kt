@@ -290,6 +290,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val data = JSONObject()
         data.put("message", "Notification reçue")
         data.put("date", Utils.getFormattedDateTime())
+        data.put("action", FcmEventType.NOTIFICATION_SUCCESS)
 
         json.put("to", token)
         json.put("data", data)
