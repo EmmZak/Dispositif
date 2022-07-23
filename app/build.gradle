@@ -37,23 +37,31 @@ android {
 
 dependencies {
     // Import the BoM for the Firebase platform
+    // room
+    // https://stackoverflow.com/questions/53823451/could-not-find-method-kapt-for-arguments
+    def roomVersion = "2.4.2"
+
+    implementation("androidx.room:room-runtime:$roomVersion")
+    annotationProcessor("androidx.room:room-compiler:$roomVersion")
+
     implementation platform('com.google.firebase:firebase-bom:29.0.0')
+    implementation("com.squareup.okhttp3:okhttp:4.5.0")
     implementation 'org.greenrobot:eventbus:3.2.0'
-    implementation 'androidx.core:core-ktx:1.7.0'
-    implementation 'androidx.appcompat:appcompat:1.4.1'
-    implementation 'com.google.android.material:material:1.5.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.2'
-    implementation 'androidx.work:work-runtime-ktx:2.5.0'
-    implementation 'com.google.firebase:firebase-firestore:24.0.0'
+    implementation 'androidx.core:core-ktx:1.8.0'
+    implementation 'androidx.appcompat:appcompat:1.4.2'
+    implementation 'com.google.android.material:material:1.6.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.work:work-runtime-ktx:2.7.1'
+    implementation 'com.google.firebase:firebase-firestore:24.2.1'
     implementation 'com.google.firebase:firebase-firestore-ktx'
-    implementation 'com.google.firebase:firebase-messaging:23.0.0'
-    implementation 'com.google.firebase:firebase-messaging-ktx:23.0.0'
-    implementation 'androidx.databinding:databinding-runtime:4.1.3'
+    implementation 'com.google.firebase:firebase-messaging:23.0.6'
+    implementation 'com.google.firebase:firebase-messaging-ktx:23.0.6'
+    implementation 'androidx.databinding:databinding-runtime:7.2.1'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
-    testImplementation 'junit:junit:4.+'
+    testImplementation 'junit:junit:5'
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
     implementation "io.reactivex.rxjava2:rxjava:2.2.3"
     implementation 'io.reactivex.rxjava2:rxkotlin:2.3.0'
-    implementation 'com.google.android.gms:play-services-location:19.0.1'
+    implementation 'com.google.android.gms:play-services-location:20.0.0'
 }

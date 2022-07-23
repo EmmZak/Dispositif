@@ -1,4 +1,8 @@
 package com.app.app.dto
 
-data class EventObject(val type: EventType, val data: Map<String, Any>) {
+import com.app.app.enums.FcmEventType
+
+data class EventObject(
+    val type: FcmEventType,
+    val data: Map<String, Any>) {
 }

@@ -1,4 +1,4 @@
-package com.app.app.dto
+package com.app.app.enums
 
 /**
  * Incoming FCM notification types
@@ -7,10 +7,13 @@ package com.app.app.dto
  * CALL     ->
  * LOCATION -> send location to a number of FCM
  * SOS      -> send SOS alert
+ * CONFIG   -> todo
  */
-enum class EventType {
+enum class FcmEventType {
     TTS,
     CALL,
     LOCATION,
-    SOS
+    SOS,
+    CONFIG,
+    NOTIFICATION_SUCCESS
 }

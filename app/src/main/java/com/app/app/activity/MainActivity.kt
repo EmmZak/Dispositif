@@ -27,14 +27,12 @@ import android.telecom.Call
 
 import android.telecom.TelecomManager
 import android.view.WindowManager
-import android.widget.LinearLayout
-import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.PermissionChecker
 import androidx.core.net.toUri
 import com.app.app.R
 import com.app.app.dialog.call.CallDialog
 import com.app.app.dto.EventObject
-import com.app.app.dto.EventType
+import com.app.app.enums.FcmEventType
 import com.app.app.exception.SmsException
 import com.app.app.service.call.Contact
 import com.app.app.service.gps.GpsService
@@ -43,13 +41,20 @@ import com.app.app.service.vibrator.VibratorService
 import android.view.animation.AnimationUtils
 import com.app.app.config.Config
 import com.app.app.config.SMSTemplate
+import com.app.app.service.EventService
+import com.app.app.utils.Utils
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 
 
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     var SENDING = false
 
-    val TAG = "manu"
+    val TAG = "MainActivity"
 
     // audio recording
     var isRecording = false
@@ -57,8 +62,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     //var FILE_NAME : String = ""
     //var OUTPUT_DIR : String = ""
     //val pop = AudioRecordingDialog()
+    val httpClient = OkHttpClient()
 
-    //var tts: TextToSpeech? = null
+    var tts: TextToSpeech? = null
 
     // services
     var smsService: SmsService? = null
@@ -66,14 +72,16 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     var vibratorService: VibratorService? = null
     var gpsService: GpsService? = null
 
+    var eventService: EventService? = null
+
     // call
     var callDialog : CallDialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN)
-        //window.setFlags(android.R.attr.windowFullscreen, android.R.attr.windowFullscreen )
+        //window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        window.setFlags(android.R.attr.windowFullscreen, android.R.attr.windowFullscreen )
         setContentView(R.layout.activity_main)
 
         ActivityCompat.requestPermissions(this,
@@ -92,10 +100,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 .let(::startActivity)
         }
 
-        //tts = TextToSpeech(this, this)
+        tts = TextToSpeech(this, this)
         //Log.e(TAG, "default engine ${tts!!.defaultEngine}")
-        //val voice = Voice("en-us-x-sfg#male_2-local", Locale.US, Voice.QUALITY_VERY_HIGH, Voice.LATENCY_NORMAL, false, null)
-        //tts!!.setVoice(voice)
 
         //filename = "${externalCacheDir?.absolutePath}/vocal.3gp"
         //FILE_NAME = "audio.3gp"
@@ -111,7 +117,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         vibratorService = VibratorService(this)
         gpsService = GpsService(this)
 
-        val numbers = Contact.getAll()
+        //eventService = EventService(this)
+
+        val numbers = Contact.getAllNumbers()
         Log.e(TAG, "numbers ${numbers[0]}")
     }
 
@@ -175,8 +183,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private fun sendNotif(tag: String) {
         Log.e(TAG, "tag $tag")
         when(tag) {
-            "OK" -> sendSms(Contact.getAll(), SMSTemplate.OK.text)
-            "KO" -> sendSms(Contact.getAll(), SMSTemplate.KO.text)
+            "OK" -> sendSms(Contact.getAllNumbers(), SMSTemplate.OK.text)
+            "KO" -> sendSms(Contact.getAllNumbers(), SMSTemplate.KO.text)
             "SOS" -> sendSos()
         }
     }
@@ -195,8 +203,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     mapUrl
                 )
                 Log.e(TAG, "text $text2")
-                sendSms(Contact.getAll(), text1)
-                sendSms(Contact.getAll(), text2)
+                sendSms(Contact.getAllNumbers(), text1)
+                sendSms(Contact.getAllNumbers(), text2)
             }
             ?.addOnFailureListener {
                 Log.e(TAG, "error")
@@ -204,7 +212,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun sendSms(number: Array<String>, text: String) {
-        var message = ""
+        var message: String
         try {
             smsService?.sendSms(number, text)
             message = "Notification envoyée"
@@ -213,7 +221,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             Log.e(TAG, "$e")
             message = "Problème lors de l'envoi de la notification"
         }
-        //tts!!.speak(message, TextToSpeech.QUEUE_ADD, null, "")
+        tts!!.speak(message, TextToSpeech.QUEUE_ADD, null, "")
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
 
@@ -261,31 +269,75 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     fun onEvent(eventObject: EventObject) {
         Log.e(TAG, "onEvent event object $eventObject")
         when(eventObject.type) {
-            EventType.CALL -> onCallEvent(eventObject)
-            EventType.TTS -> onMessageEvent(eventObject)
-            EventType.LOCATION -> onLocationEvent(eventObject)
-            EventType.SOS -> onSosEvent(eventObject)
+            FcmEventType.CALL -> onCallEvent(eventObject)
+            FcmEventType.TTS -> onMessageEvent(eventObject)
+            FcmEventType.LOCATION -> onLocationEvent(eventObject)
+            FcmEventType.SOS -> onSosEvent(eventObject)
+            FcmEventType.CONFIG -> TODO()
+            FcmEventType.NOTIFICATION_SUCCESS -> TODO()
+        }
+
+        if (eventObject.data["token"] != null) {
+            sendFCM(eventObject.data["token"] as String)
         }
     }
 
+    private fun sendFCM(token: String) {
+        val json = JSONObject()
+
+        val data = JSONObject()
+        data.put("message", "Notification reçue")
+        data.put("date", Utils.getFormattedDateTime())
+
+        json.put("to", token)
+        json.put("data", data)
+        Log.e(TAG, "Sending back ${json.toString()}")
+
+        val requestBody =
+            json.toString().toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
+
+        val request = Request.Builder()
+            .header(
+                "Authorization",
+                "key=AAAAw0zVm_U:APA91bEP2ISoe6EwgN3FO5CNuqgYwiYNWH_XF9GbJUM3ijWbsnlfiLsiX3eK5W9ODkcCBtce5iVV9kUBfT3wI2__WbhCDEuoiwgCt6cV-m2OV5kfgXc5ROiqHLGv7VA5rXGEgUIQCE1P"
+            )
+            .header("Content-Type", "application/json")
+            .url("https://fcm.googleapis.com/fcm/send")
+            .post(requestBody)
+            .build()
+
+        val thread = Thread {
+            Log.e(TAG, "sending notif")
+            try {
+                val response = httpClient.newCall(request).execute()
+                Log.e(TAG, response.toString())
+                Log.e(TAG, "response $response")
+            } catch (e: Exception) {
+                Log.e("err", e.toString())
+                throw e
+            }
+        }
+        thread.start()
+    }
+
     private fun onSosEvent(eventObject: EventObject) {
-        if (eventObject.type == EventType.SOS) {
+        if (eventObject.type == FcmEventType.SOS) {
             Log.e(TAG, "$eventObject")
             val text = "Une alerte SOS va être envoyée"
-            //tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
+            tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
 
             sendSos()
         }
     }
 
     private fun onCallEvent(eventObject: EventObject) {
-        if (eventObject.type == EventType.CALL) {
+        if (eventObject.type == FcmEventType.CALL) {
             val state = Integer.parseInt(eventObject.data["state"].toString())
             Log.e(TAG, "received call state $state")
 
             // Outgoing call
             if (state == Call.STATE_CONNECTING /* == 9 */) {
-                //Log.e(TAG, "Dialing ...")
+                Log.e(TAG, "Dialing ...")
                 callDialog = CallDialog.newInstance("Emmanuel", "Appel en cours ...", 1)
                 callDialog!!.isCancelable = false
                 (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
@@ -338,17 +390,17 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private fun onMessageEvent(eventObject: EventObject) {
         Log.e(TAG, "onMessageEvent $eventObject")
-        if (eventObject.type == EventType.TTS) {
+        if (eventObject.type == FcmEventType.TTS) {
             val text = eventObject.data["message"].toString()
-            //tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
+            tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
         }
     }
 
     private fun onLocationEvent(eventObject: EventObject) {
         Log.e(TAG, "onLocationEvent $eventObject")
-        if (eventObject.type == EventType.LOCATION) {
+        if (eventObject.type == FcmEventType.LOCATION) {
             val text = eventObject.data["message"].toString()
-            //tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
+            tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
 
             val res = gpsService?.getLocation()
             Log.e(TAG, "res $res")
@@ -360,10 +412,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     val mapUrl = "https://www.google.com/maps/search/?api=1&query=${loc?.latitude},${loc?.longitude}"
                     Log.e(TAG, "mapUrl $mapUrl")
                     Log.e(TAG, "res mapUrl $mapUrl")
-                    val text = SMSTemplate.LOCATION.text.format(mapUrl)
+                    val message = SMSTemplate.LOCATION.text.format(mapUrl)
 
                     val number = eventObject.data["number"] as String
-                    sendSms(arrayOf(number), text)
+                    sendSms(arrayOf(number), message)
                 }
                 ?.addOnFailureListener {
                     Log.e(TAG, "error")
@@ -434,12 +486,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            // set US English as language for tts
-//            val result = tts!!.setLanguage(Locale.FRENCH)
-//
-//            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-//                Log.e(TAG,"The Language specified is not supported!")
-//            }
+            val result = tts!!.setLanguage(Locale.FRENCH)
+
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                Log.e(TAG,"The Language specified is not supported!")
+            }
         } else {
             Log.e(TAG, "Initilization Failed!")
         }

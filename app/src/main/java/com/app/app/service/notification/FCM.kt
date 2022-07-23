@@ -3,7 +3,7 @@ package com.app.app.service
 import android.util.Log
 import com.app.app.db.FcmRepository
 import com.app.app.dto.EventObject
-import com.app.app.dto.EventType
+import com.app.app.enums.FcmEventType
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -30,16 +30,17 @@ class FCM: FirebaseMessagingService() {
         fcmRepository.saveToken(token)
     }
 
-    override fun onMessageReceived(message: RemoteMessage) {
-        super.onMessageReceived(message)
-        Log.e(TAG, "message.data ${message.data}")
+    override fun onMessageReceived(fcmObject: RemoteMessage) {
+        super.onMessageReceived(fcmObject)
+        Log.e(TAG, "message.data ${fcmObject.data}")
 
         val data = hashMapOf(
-            "message" to message.data["message"]
+            "message" to fcmObject.data["message"]
         )
-        val action = EventType.values().first {it.name == message.data["action"]}
+        val action = FcmEventType.values().first {it.name == fcmObject.data["action"]}
         Log.e(TAG, "action $action")
-        val o = EventObject(action, message.data)
+
+        val o = EventObject(action, fcmObject.data)
         EventBus.getDefault().post(o)
     }
 }

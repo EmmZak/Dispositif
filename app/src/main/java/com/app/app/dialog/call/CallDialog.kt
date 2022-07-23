@@ -24,6 +24,8 @@ class CallDialog : DialogFragment() {
     var options: Int = 1
     val TAG = "CallDialog manu"
 
+    val TEXT_SIZE = 10F
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
@@ -50,8 +52,10 @@ class CallDialog : DialogFragment() {
         view?.let { updateUI(it, name, text, options) }
     }
 
-    fun updateUI(view: View, name: String, text: String, options: Int) {
+    private fun updateUI(view: View, name: String, text: String, options: Int) {
         Log.e(TAG, " updating with $name $text")
+
+
         view.findViewById<TextView>(R.id.callDialogText)?.text = text
         view.findViewById<TextView>(R.id.callDialogName)?.text = name
 
@@ -63,7 +67,7 @@ class CallDialog : DialogFragment() {
             } catch(e: Exception) {
                 Log.e(TAG, "$e")
             }
-            //dismiss()
+            dismiss()
         }
 
         val reply = view.findViewById<Button>(R.id.replyButton)
@@ -71,12 +75,12 @@ class CallDialog : DialogFragment() {
         // can only refuse
         if (options == 1) {
             (hangup.layoutParams as LinearLayout.LayoutParams).weight = 19.0F
-            hangup.textSize = 48F
+            //hangup.textSize = TEXT_SIZE
 
-            val separateDiv = view.findViewById<View>(R.id.separationDiv)
-            separateDiv.visibility = View.GONE
+            //val separateDiv = view.findViewById<View>(R.id.separationDiv)
+            //separateDiv.visibility = View.GONE
 
-            reply.visibility = View.GONE
+            //reply.visibility = View.GONE
         } else {
             reply.setOnClickListener{
                 //Log.e(TAG, "incomingCall : reply")
