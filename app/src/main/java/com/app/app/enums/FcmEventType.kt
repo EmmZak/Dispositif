@@ -3,11 +3,12 @@ package com.app.app.enums
 /**
  * Incoming FCM notification types
  *
- * TTS      -> speak message
- * CALL     ->
- * LOCATION -> send location to a number of FCM
- * SOS      -> send SOS alert
- * CONFIG   -> todo
+ * TTS       -> speak message
+ * CALL      ->
+ * LOCATION  -> send location to a number of FCM
+ * SOS       -> send SOS alert
+ * CONFIG    -> todo
+ * SUBSCRIBE -> new client
  */
 enum class FcmEventType {
     TTS,
@@ -15,5 +16,6 @@ enum class FcmEventType {
     LOCATION,
     SOS,
     CONFIG,
-    NOTIFICATION_SUCCESS
+    NOTIFICATION_SUCCESS,
+    SUBSCRIBE
 }

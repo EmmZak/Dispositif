@@ -39,6 +39,7 @@ import com.app.app.service.gps.GpsService
 import com.app.app.service.permission.AppPermissionService
 import com.app.app.service.vibrator.VibratorService
 import android.view.animation.AnimationUtils
+import androidx.core.app.NotificationCompat
 import com.app.app.config.Config
 import com.app.app.config.SMSTemplate
 import com.app.app.service.EventService
@@ -275,6 +276,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             FcmEventType.SOS -> onSosEvent(eventObject)
             FcmEventType.CONFIG -> TODO()
             FcmEventType.NOTIFICATION_SUCCESS -> TODO()
+            FcmEventType.SUBSCRIBE -> TODO()
         }
 
         if (eventObject.data["token"] != null) {
@@ -530,4 +532,5 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         EventBus.getDefault().unregister(this);
         Log.e(TAG, "On stop triggered")
     }
+
 }
