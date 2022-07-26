@@ -5,7 +5,7 @@ import android.telecom.InCallService
 import android.telecom.VideoProfile
 import android.util.Log
 import com.app.app.dto.EventObject
-import com.app.app.enums.FcmEventType
+import com.app.app.enums.EventType
 import org.greenrobot.eventbus.EventBus
 
 class CallService : InCallService() {
@@ -39,7 +39,7 @@ class CallService : InCallService() {
         val data = hashMapOf(
             "state" to call.state
         )
-        val o = EventObject(FcmEventType.CALL, data as Map<String, Any>)
+        val o = EventObject(EventType.CALL, data as Map<String, Any>)
         EventBus.getDefault().post(o)
     }
 
@@ -78,7 +78,7 @@ class CallService : InCallService() {
             val data = hashMapOf(
                 "state" to state
             )
-            val o = EventObject(FcmEventType.CALL, data as Map<String, Any>)
+            val o = EventObject(EventType.CALL, data as Map<String, Any>)
             EventBus.getDefault().post(o)
         }
 

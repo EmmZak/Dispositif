@@ -32,7 +32,6 @@ import androidx.core.net.toUri
 import com.app.app.R
 import com.app.app.dialog.call.CallDialog
 import com.app.app.dto.EventObject
-import com.app.app.enums.FcmEventType
 import com.app.app.exception.SmsException
 import com.app.app.service.call.Contact
 import com.app.app.service.gps.GpsService
@@ -42,7 +41,10 @@ import android.view.animation.AnimationUtils
 import androidx.core.app.NotificationCompat
 import com.app.app.config.Config
 import com.app.app.config.SMSTemplate
+import com.app.app.dto.FcmObjectData
+import com.app.app.enums.EventType
 import com.app.app.service.EventService
+import com.app.app.service.FCM
 import com.app.app.utils.Utils
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
@@ -55,7 +57,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     var SENDING = false
 
-    val TAG = "MainActivity"
+    val TAG = "MainActivity manu"
 
     // audio recording
     var isRecording = false
@@ -269,62 +271,29 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onEvent(eventObject: EventObject) {
         Log.e(TAG, "onEvent event object $eventObject")
-        when(eventObject.type) {
-            FcmEventType.CALL -> onCallEvent(eventObject)
-            FcmEventType.TTS -> onMessageEvent(eventObject)
-            FcmEventType.LOCATION -> onLocationEvent(eventObject)
-            FcmEventType.SOS -> onSosEvent(eventObject)
-            FcmEventType.CONFIG -> TODO()
-            FcmEventType.NOTIFICATION_SUCCESS -> TODO()
-            FcmEventType.SUBSCRIBE -> TODO()
+        val token = eventObject.data["token"]
+
+        if (token != null) {
+            FCM.sendFCM(eventObject.data["token"] as String)
         }
 
-        if (eventObject.data["token"] != null) {
-            sendFCM(eventObject.data["token"] as String)
+        when(eventObject.event) {
+            EventType.FCM_TTS -> onMessageEvent(eventObject)
+            EventType.FCM_LOCATION -> onLocationEvent(eventObject, token as String)
+            EventType.FCM_SOS -> onSosEvent(eventObject)
+            EventType.FCM_CONFIG -> TODO()
+            EventType.FCM_SUBSCRIBE -> TODO()
+
+            EventType.CALL -> onCallEvent(eventObject)
+            EventType.NOTIFICATION_SUCCESS -> TODO()
         }
+
+
     }
 
-    private fun sendFCM(token: String) {
-        val json = JSONObject()
-
-        val data = JSONObject()
-        data.put("message", "Notification reçue")
-        data.put("date", Utils.getFormattedDateTime())
-        data.put("action", FcmEventType.NOTIFICATION_SUCCESS)
-
-        json.put("to", token)
-        json.put("data", data)
-        Log.e(TAG, "Sending back ${json.toString()}")
-
-        val requestBody =
-            json.toString().toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
-
-        val request = Request.Builder()
-            .header(
-                "Authorization",
-                "key=AAAAw0zVm_U:APA91bEP2ISoe6EwgN3FO5CNuqgYwiYNWH_XF9GbJUM3ijWbsnlfiLsiX3eK5W9ODkcCBtce5iVV9kUBfT3wI2__WbhCDEuoiwgCt6cV-m2OV5kfgXc5ROiqHLGv7VA5rXGEgUIQCE1P"
-            )
-            .header("Content-Type", "application/json")
-            .url("https://fcm.googleapis.com/fcm/send")
-            .post(requestBody)
-            .build()
-
-        val thread = Thread {
-            Log.e(TAG, "sending notif")
-            try {
-                val response = httpClient.newCall(request).execute()
-                Log.e(TAG, response.toString())
-                Log.e(TAG, "response $response")
-            } catch (e: Exception) {
-                Log.e("err", e.toString())
-                throw e
-            }
-        }
-        thread.start()
-    }
 
     private fun onSosEvent(eventObject: EventObject) {
-        if (eventObject.type == FcmEventType.SOS) {
+        if (eventObject.event == EventType.FCM_SOS) {
             Log.e(TAG, "$eventObject")
             val text = "Une alerte SOS va être envoyée"
             tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
@@ -334,7 +303,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun onCallEvent(eventObject: EventObject) {
-        if (eventObject.type == FcmEventType.CALL) {
+        if (eventObject.event == EventType.CALL) {
             val state = Integer.parseInt(eventObject.data["state"].toString())
             Log.e(TAG, "received call state $state")
 
@@ -393,15 +362,15 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private fun onMessageEvent(eventObject: EventObject) {
         Log.e(TAG, "onMessageEvent $eventObject")
-        if (eventObject.type == FcmEventType.TTS) {
+        if (eventObject.event == EventType.FCM_TTS) {
             val text = eventObject.data["message"].toString()
             tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
         }
     }
 
-    private fun onLocationEvent(eventObject: EventObject) {
+    private fun onLocationEvent(eventObject: EventObject, token: String) {
         Log.e(TAG, "onLocationEvent $eventObject")
-        if (eventObject.type == FcmEventType.LOCATION) {
+        if (eventObject.event == EventType.FCM_LOCATION) {
             val text = eventObject.data["message"].toString()
             tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
 
@@ -419,6 +388,21 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
                     val number = eventObject.data["number"] as String
                     sendSms(arrayOf(number), message)
+
+                    // send notif
+                    val data = FcmObjectData()
+                    data.message = "Notification reçue"
+                    data.date = Date()
+                    data.event = EventType.FCM_LOCATION
+                    data.mapUrl = mapUrl
+
+                    /*val data = JSONObject()
+                    data.put("message", "Notification reçue")
+                    data.put("date", Utils.getFormattedDateTime())
+                    data.put("event", EventType.FCM_LOCATION)
+                    data.put("mapUrl", mapUrl)*/
+
+                    FCM.sendFCM(token, data)
                 }
                 ?.addOnFailureListener {
                     Log.e(TAG, "error")
@@ -494,6 +478,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                 Log.e(TAG,"The Language specified is not supported!")
             }
+            Log.e(TAG, "TTS setup done")
         } else {
             Log.e(TAG, "Initilization Failed!")
         }

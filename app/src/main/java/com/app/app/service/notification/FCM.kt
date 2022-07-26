@@ -3,13 +3,20 @@ package com.app.app.service
 import android.util.Log
 import com.app.app.db.FcmRepository
 import com.app.app.dto.EventObject
-import com.app.app.enums.FcmEventType
-import com.google.firebase.firestore.SetOptions
+import com.app.app.dto.FcmObject
+import com.app.app.dto.FcmObjectData
+import com.app.app.enums.EventType
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.greenrobot.eventbus.EventBus
+import java.lang.Exception
+import java.util.*
 
 data class FCMMessage(val message: Map<String, String>)
 
@@ -34,13 +41,62 @@ class FCM: FirebaseMessagingService() {
         super.onMessageReceived(fcmObject)
         Log.e(TAG, "message.data ${fcmObject.data}")
 
-        val data = hashMapOf(
-            "message" to fcmObject.data["message"]
-        )
-        val action = FcmEventType.values().first {it.name == fcmObject.data["action"]}
-        Log.e(TAG, "action $action")
+        val event = EventType.values().first {it.name == fcmObject.data["event"]}
+        Log.e(TAG, "event $event")
 
-        val o = EventObject(action, fcmObject.data)
+
+        val o = EventObject(event, fcmObject.data)
         EventBus.getDefault().post(o)
+    }
+
+    // custom
+    companion object {
+        const val TAG = "FireBaseMessagingService manu"
+        private val httpClient = OkHttpClient()
+
+        fun sendFCM(token: String) {
+            val data = FcmObjectData()
+            data.message = "Notification reçue"
+            data.date = Date() //Utils.getFormattedDateTime()
+            data.event = EventType.NOTIFICATION_SUCCESS
+
+            sendFCM(token, data)
+        }
+
+        fun sendFCM(token: String, data: FcmObjectData) {
+            //val json = JSONObject()
+            val fcmObject = FcmObject()
+            //json.put("to", token)
+            //json.put("data", data)
+            fcmObject.to = token
+            fcmObject.data = data
+
+            //val requestBody = json.toString().toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
+            val requestBody = fcmObject.toString().toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
+
+            val request = Request.Builder()
+                .header(
+                    "Authorization",
+                    "key=AAAAw0zVm_U:APA91bEP2ISoe6EwgN3FO5CNuqgYwiYNWH_XF9GbJUM3ijWbsnlfiLsiX3eK5W9ODkcCBtce5iVV9kUBfT3wI2__WbhCDEuoiwgCt6cV-m2OV5kfgXc5ROiqHLGv7VA5rXGEgUIQCE1P"
+                )
+                .header("Content-Type", "application/json")
+                .url("https://fcm.googleapis.com/fcm/send")
+                .post(requestBody)
+                .build()
+
+            val thread = Thread {
+                Log.e(TAG, "sending notif")
+                try {
+                    val response = httpClient.newCall(request).execute()
+                    Log.e(TAG, response.toString())
+                    Log.e(TAG, "response $response")
+                } catch (e: Exception) {
+                    Log.e("err", e.toString())
+                    throw e
+                }
+            }
+            thread.start()
+        }
+
     }
 }

@@ -4,10 +4,8 @@ import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.util.Log
 import com.app.app.dto.EventObject
-import com.app.app.enums.FcmEventType
+import com.app.app.enums.EventType
 import org.greenrobot.eventbus.EventBus
-import org.greenrobot.eventbus.Subscribe
-import org.greenrobot.eventbus.ThreadMode
 import java.util.*
 
 class EventService: TextToSpeech.OnInitListener {
@@ -24,20 +22,20 @@ class EventService: TextToSpeech.OnInitListener {
     var tts: TextToSpeech = TextToSpeech(context, this)
 
     //@Subscribe(threadMode = ThreadMode.MAIN)
-    fun onEvent(eventObject: EventObject) {
-        Log.e(TAG, "onEvent event object $eventObject")
-        when(eventObject.type) {
-            //FcmEventType.CALL -> onCallEvent(eventObject)
-            FcmEventType.TTS -> onMessageEvent(eventObject)
-            //FcmEventType.LOCATION -> onLocationEvent(eventObject)
-            //FcmEventType.SOS -> onSosEvent(eventObject)
-            //FcmEventType.CONFIG -> TODO()
-        }
-    }
+//    fun onEvent(eventObject: EventObject) {
+//        Log.e(TAG, "onEvent event object $eventObject")
+//        when(eventObject.event) {
+//            FcmEventType.CALL -> onCallEvent(eventObject)
+//            FcmEventType.TTS -> onMessageEvent(eventObject)
+//            FcmEventType.LOCATION -> onLocationEvent(eventObject)
+//            FcmEventType.SOS -> onSosEvent(eventObject)
+//            FcmEventType.CONFIG -> TODO()
+//        }
+//    }
 
     private fun onMessageEvent(eventObject: EventObject) {
         Log.e(TAG, "onMessageEvent $eventObject")
-        if (eventObject.type == FcmEventType.TTS) {
+        if (eventObject.event == EventType.FCM_TTS) {
             val text = eventObject.data["message"].toString()
             tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
         }

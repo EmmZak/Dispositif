@@ -1,13 +1,5 @@
 package com.app.app.service.call
 
-import android.telecom.Call
-import android.telecom.VideoProfile
-import android.util.Log
-import com.app.app.dto.EventObject
-import com.app.app.enums.FcmEventType
-import io.reactivex.subjects.BehaviorSubject
-import org.greenrobot.eventbus.EventBus
-
 object OngoingCall {
     val TAG = "manu"
     /*
