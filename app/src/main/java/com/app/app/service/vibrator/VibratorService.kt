@@ -6,12 +6,12 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 
-class VibratorService {
+class VibratorService(context: Context) {
 
     private val TAG = "VibratorService manu"
     private var vibrator: Vibrator? = null
 
-    constructor(context: Context) {
+    init {
         vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
             vibratorManager.defaultVibrator

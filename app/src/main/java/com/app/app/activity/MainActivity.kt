@@ -23,6 +23,7 @@ import android.os.*
 import android.widget.ImageView
 import android.content.Intent
 import android.location.Location
+import android.speech.tts.UtteranceProgressListener
 import android.telecom.Call
 
 import android.telecom.TelecomManager
@@ -52,6 +53,23 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 
+class UtteranceManager: UtteranceProgressListener() {
+
+    var TAG = "UtteranceManager manu"
+
+    override fun onStart(utteranceId: String?) {
+        Log.e(TAG, "onStart $utteranceId")
+    }
+
+    override fun onDone(utteranceId: String?) {
+        Log.e(TAG, "onDone $utteranceId")
+    }
+
+    override fun onError(utteranceId: String?) {
+        Log.e(TAG, "onError $utteranceId")
+    }
+
+}
 
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
@@ -67,9 +85,30 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     //val pop = AudioRecordingDialog()
     val httpClient = OkHttpClient()
 
-    var tts: TextToSpeech? = null
+    /**
+     * TTS
+     */
+    private val tts: TextToSpeech = TextToSpeech(this, this)
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            val result = tts.setLanguage(Locale.FRENCH)
 
-    // services
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                Log.e(TAG,"The Language specified is not supported!")
+            }
+            tts.setOnUtteranceProgressListener(UtteranceManager())
+            Log.e(TAG, "TTS setup done")
+
+        } else {
+            Log.e(TAG, "Initilization Failed!")
+        }
+    }
+
+
+
+    /**
+     * services
+     */
     var smsService: SmsService? = null
     var callService: CallService? = null
     var vibratorService: VibratorService? = null
@@ -83,7 +122,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        //window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN)
         window.setFlags(android.R.attr.windowFullscreen, android.R.attr.windowFullscreen )
         setContentView(R.layout.activity_main)
 
@@ -103,7 +141,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 .let(::startActivity)
         }
 
-        tts = TextToSpeech(this, this)
+        //tts = TextToSpeech(this, this)
         //Log.e(TAG, "default engine ${tts!!.defaultEngine}")
 
         //filename = "${externalCacheDir?.absolutePath}/vocal.3gp"
@@ -224,8 +262,25 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             Log.e(TAG, "$e")
             message = "Problème lors de l'envoi de la notification"
         }
-        tts!!.speak(message, TextToSpeech.QUEUE_ADD, null, "")
+
+        speak(message)
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+    }
+
+    private fun speak(message: String) {
+        try {
+            val res = tts.speak(message, TextToSpeech.QUEUE_ADD, null, TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID)
+
+
+
+            if (res == TextToSpeech.ERROR) {
+                Log.e(TAG, "tts speak error res=$res")
+            } else {
+                Log.e(TAG, "tts worked")
+            }
+        } catch(e: Exception) {
+            Log.e(TAG, e.toString())
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -291,12 +346,16 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     }
 
+    private fun onTtsError() {
+
+    }
 
     private fun onSosEvent(eventObject: EventObject) {
         if (eventObject.event == EventType.FCM_SOS) {
             Log.e(TAG, "$eventObject")
             val text = "Une alerte SOS va être envoyée"
-            tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
+
+            speak(text)
 
             sendSos()
         }
@@ -471,19 +530,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
     // check audio permission
 
-    override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) {
-            val result = tts!!.setLanguage(Locale.FRENCH)
-
-            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                Log.e(TAG,"The Language specified is not supported!")
-            }
-            Log.e(TAG, "TTS setup done")
-        } else {
-            Log.e(TAG, "Initilization Failed!")
-        }
-    }
-
     private fun isDefaultDialerService(): Boolean {
         return getSystemService(TelecomManager::class.java).defaultDialerPackage != packageName
     }
@@ -507,11 +553,15 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     override fun onDestroy() {
+        tts.stop()
+        tts.shutdown()
         super.onDestroy()
         Log.d(TAG, "on destroy Removing snapshot")
     }
 
     override fun onStop() {
+        tts.stop()
+        tts.shutdown()
         super.onStop()
         //recorder?.release()
         //recorder = null
