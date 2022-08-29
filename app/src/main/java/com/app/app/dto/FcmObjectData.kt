@@ -5,4 +5,8 @@ import java.util.*
 
 data class FcmObjectData(var event: EventType?, var date: Date?, var number: String?, var message: String?, var token: String?, var mapUrl: String?) {
     constructor() : this(null, null, null, null, null, null)
+
+    fun toJson(): String {
+        return "{event: $event, date: $date, number: $number, message: $message, token: $token, mapUrl: $mapUrl}"
+    }
 }

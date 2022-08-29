@@ -1,6 +1,7 @@
 package com.app.app.db
 
 import android.util.Log
+import com.app.app.config.AppInfo
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -15,8 +16,8 @@ class FcmRepository {
             "token" to token
         )
         Log.e(TAG, "saving fcm token $token")
-        db.collection("apps")
-            .document("communication")
+        db.collection(AppInfo.COLLECTION)
+            .document(AppInfo.APP_ID)
             .set(data, SetOptions.merge())
             .addOnSuccessListener {
                 Log.e(TAG, "token saved")

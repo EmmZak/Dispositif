@@ -88,23 +88,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     /**
      * TTS
      */
-    private val tts: TextToSpeech = TextToSpeech(this, this)
-    override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) {
-            val result = tts.setLanguage(Locale.FRENCH)
-
-            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                Log.e(TAG,"The Language specified is not supported!")
-            }
-            tts.setOnUtteranceProgressListener(UtteranceManager())
-            Log.e(TAG, "TTS setup done")
-
-        } else {
-            Log.e(TAG, "Initilization Failed!")
-        }
-    }
-
-
+    private lateinit var tts: TextToSpeech
 
     /**
      * services
@@ -141,7 +125,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 .let(::startActivity)
         }
 
-        //tts = TextToSpeech(this, this)
+        tts = TextToSpeech(this, this)
         //Log.e(TAG, "default engine ${tts!!.defaultEngine}")
 
         //filename = "${externalCacheDir?.absolutePath}/vocal.3gp"
@@ -271,10 +255,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         try {
             val res = tts.speak(message, TextToSpeech.QUEUE_ADD, null, TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID)
 
-
-
             if (res == TextToSpeech.ERROR) {
-                Log.e(TAG, "tts speak error res=$res")
+                Log.e(TAG, "tts speak QUEUE error res=$res")
             } else {
                 Log.e(TAG, "tts worked")
             }
@@ -466,6 +448,21 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 ?.addOnFailureListener {
                     Log.e(TAG, "error")
                 }
+        }
+    }
+
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            val result = tts.setLanguage(Locale.FRENCH)
+
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                Log.e(TAG,"The Language specified is not supported!")
+            }
+            //tts.setOnUtteranceProgressListener(UtteranceManager())
+            Log.e(TAG, "TTS setup done")
+
+        } else {
+            Log.e(TAG, "Initilization Failed!")
         }
     }
 

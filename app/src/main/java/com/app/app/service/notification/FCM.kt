@@ -10,11 +10,13 @@ import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import com.google.gson.Gson
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.greenrobot.eventbus.EventBus
+import org.json.JSONObject
 import java.lang.Exception
 import java.util.*
 
@@ -71,8 +73,9 @@ class FCM: FirebaseMessagingService() {
             fcmObject.to = token
             fcmObject.data = data
 
-            //val requestBody = json.toString().toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
-            val requestBody = fcmObject.toString().toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
+            val gson = Gson()
+            val json = gson.toJson(fcmObject)
+            val requestBody = json.toString().toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
 
             val request = Request.Builder()
                 .header(

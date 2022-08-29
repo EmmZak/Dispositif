@@ -4,6 +4,7 @@
     package="com.app.app">
 
     <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -26,7 +27,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <!-- <category android:name="android.intent.category.HOME" /> -->
-                <category android:name="android.intent.category.DEFAULT" />
+                <!-- <category android:name="android.intent.category.DEFAULT" /> -->
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
@@ -35,14 +36,14 @@
                 <action android:name="android.intent.action.VIEW" />
                 <action android:name="android.intent.action.DIAL" />
                 <!-- Populate the system chooser -->
-                <category android:name="android.intent.category.DEFAULT" />
+                <!-- <category android:name="android.intent.category.DEFAULT" /> -->
                 <!-- Handle links in browsers -->
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="tel" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.DIAL" />
-                <category android:name="android.intent.category.DEFAULT" />
+                <!-- <category android:name="android.intent.category.DEFAULT" /> -->
             </intent-filter>
         </activity>
 
