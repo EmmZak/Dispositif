@@ -6,6 +6,7 @@ import android.view.View
 import androidx.core.app.ActivityCompat
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
 import java.lang.Exception
 import java.util.*
 import android.speech.tts.TextToSpeech
@@ -23,6 +24,8 @@ import android.os.*
 import android.widget.ImageView
 import android.content.Intent
 import android.location.Location
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.speech.tts.UtteranceProgressListener
 import android.telecom.Call
 
@@ -52,6 +55,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import kotlin.system.exitProcess
 
 class UtteranceManager: UtteranceProgressListener() {
 
@@ -86,6 +90,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     val httpClient = OkHttpClient()
 
     /**
+     * Call
+     */
+    private var CALL_STATE: Int = -1
+
+    /**
      * TTS
      */
     private lateinit var tts: TextToSpeech
@@ -105,6 +114,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (!isOnline(this)) {
+            Log.e(TAG, "network not available exiting")
+            Toast.makeText(this, "Pas de connexion internet", Toast.LENGTH_LONG).show()
+            exitProcess(-1)
+        }
 
         window.setFlags(android.R.attr.windowFullscreen, android.R.attr.windowFullscreen )
         setContentView(R.layout.activity_main)
@@ -305,6 +320,26 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         (callDialog as InCallDialog).show(supportFragmentManager, "call dialog")*/
     }
 
+    private fun isOnline(context: Context): Boolean {
+        val connectivityManager =
+            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val capabilities =
+            connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
+        if (capabilities != null) {
+            if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+                Log.i("Internet", "NetworkCapabilities.TRANSPORT_CELLULAR")
+                return true
+            } else if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                Log.i("Internet", "NetworkCapabilities.TRANSPORT_WIFI")
+                return true
+            } else if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+                Log.i("Internet", "NetworkCapabilities.TRANSPORT_ETHERNET")
+                return true
+            }
+        }
+        return false
+    }
+
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onEvent(eventObject: EventObject) {
         Log.e(TAG, "onEvent event object $eventObject")
@@ -323,10 +358,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
             EventType.CALL -> onCallEvent(eventObject)
             EventType.NOTIFICATION_SUCCESS -> TODO()
+            else -> Log.e(TAG, "${eventObject.event} is not supported in EventType enum")
         }
 
 
     }
+
 
     private fun onTtsError() {
 
@@ -345,18 +382,46 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private fun onCallEvent(eventObject: EventObject) {
         if (eventObject.event == EventType.CALL) {
-            val state = Integer.parseInt(eventObject.data["state"].toString())
-            Log.e(TAG, "received call state $state")
+            CALL_STATE = Integer.parseInt(eventObject.data["state"].toString())
+            Log.e(TAG, "received call state $CALL_STATE")
 
             // Outgoing call
-            if (state == Call.STATE_CONNECTING /* == 9 */) {
+            if (CALL_STATE == Call.STATE_CONNECTING /* == 9 */) {
                 Log.e(TAG, "Dialing ...")
                 callDialog = CallDialog.newInstance("Emmanuel", "Appel en cours ...", 1)
                 callDialog!!.isCancelable = false
                 (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
+
+                // launch timer to stop call if not pick up in 20 sec
+                object : CountDownTimer(60000, 10000) {
+                    override fun onTick(millisUntilFinished: Long) {
+                        Log.e(TAG, "waiting $millisUntilFinished before hanging up")
+                        Log.e(TAG, "call service state $CALL_STATE, waiting: $millisUntilFinished")
+
+                        // dismiss
+                        if (CALL_STATE == 7) {
+                            Log.i(TAG, "hanging up as dismissed")
+                            cancel()
+                        }
+                    }
+                    override fun onFinish() {
+                        Log.e(TAG, "timer finished")
+                        CallService.hangup()
+                        /*
+                        if (CALL_STATE == 1) {
+                            Log.e(TAG, "hanging up automatically")
+                            CallService.hangup()
+                        }
+                        // répondeur
+                        if (CALL_STATE == 4) {
+                            Log.e(TAG, "Dans le répondeur")
+                        } */
+                    }
+                }.start()
+
             }
             // Incoming call
-            if (state == Call.STATE_RINGING /* == 2 */) {
+            if (CALL_STATE == Call.STATE_RINGING /* == 2 */) {
 //                Log.e(TAG, "Incoming ...")
 //                val replySwitch = findViewById<SwitchCompat>(R.id.autoReplySwitch)
 //                Log.e(TAG, "replySWitch $replySwitch")
@@ -379,13 +444,13 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
             }
             // Disconnect
-            if (state == Call.STATE_DISCONNECTED /* == 7 */) {
+            if (CALL_STATE == Call.STATE_DISCONNECTED /* == 7 */) {
                 //Log.e(TAG, "Closing ...")
                 callDialog?.dismiss()
                 callDialog = null
             }
             // In Call
-            if (state == Call.STATE_ACTIVE /* == 4 */) {
+            if (CALL_STATE == Call.STATE_ACTIVE /* == 4 */) {
                 Log.e(TAG, "In Call ...")
                 //callDialog = CallDialog.newInstance("Emmanuel", "En appel avec")
                 if (callDialog != null) {
