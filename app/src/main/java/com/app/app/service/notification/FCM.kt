@@ -92,7 +92,7 @@ class FCM: FirebaseMessagingService() {
                 try {
                     val response = httpClient.newCall(request).execute()
                     Log.e(TAG, response.toString())
-                    Log.e(TAG, "response $response")
+                    Log.e(TAG, "FCM response $response")
                 } catch (e: Exception) {
                     Log.e("err", e.toString())
                     throw e

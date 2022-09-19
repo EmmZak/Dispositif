@@ -121,7 +121,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             exitProcess(-1)
         }
 
-        window.setFlags(android.R.attr.windowFullscreen, android.R.attr.windowFullscreen )
+        //window.setFlags(android.R.attr.windowFullscreen, android.R.attr.windowFullscreen )
         setContentView(R.layout.activity_main)
 
         ActivityCompat.requestPermissions(this,
@@ -470,7 +470,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         Log.e(TAG, "onMessageEvent $eventObject")
         if (eventObject.event == EventType.FCM_TTS) {
             val text = eventObject.data["message"].toString()
-            tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
+            tts.speak(text, TextToSpeech.QUEUE_ADD, null, "")
         }
     }
 
@@ -478,7 +478,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         Log.e(TAG, "onLocationEvent $eventObject")
         if (eventObject.event == EventType.FCM_LOCATION) {
             val text = eventObject.data["message"].toString()
-            tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
+            tts.speak(text, TextToSpeech.QUEUE_ADD, null, "")
 
             val res = gpsService?.getLocation()
             Log.e(TAG, "res $res")
