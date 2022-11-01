@@ -13,12 +13,20 @@
         android:weightSum="10">
 
         <ImageView
-            android:id="@+id/callIcon1"
+            android:id="@+id/emergencyContactCall"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="6"
             android:tag="CALL"
             app:srcCompat="@drawable/ic_baseline_phone_24" />
+
+        <TextView
+            android:id="@+id/emergencyContactName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textAlignment="center"
+            android:textSize="14sp" />
 
         <ImageView
             android:id="@+id/sos"

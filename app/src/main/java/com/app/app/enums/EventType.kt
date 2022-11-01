@@ -9,6 +9,9 @@ package com.app.app.enums
  * FCM_SOS       -> send SOS alert
  * FCM_CONFIG    ->
  * FCM_SUBSCRIBE ->
+ * FCM_ALARM_CHANGE -> When alarm CRUD occured
+ * FCM_CLIENT_CHANGE -> When client CRUD occured
+ * FCM_EMERGENCY_CONTACT_CHANGE -> When client CRUD occured
  *
  * CALL          -> Start new call intent
  * NOTIFICATION_SUCCESS -> send back notif
@@ -20,6 +23,9 @@ enum class EventType(value: String) {
     FCM_SOS("FCM_SOS"),
     FCM_CONFIG("FCM_CONFIG"),
     FCM_SUBSCRIBE("FCM_SUBSCRIBE"),
+    FCM_ALARM_CHANGE("FCM_ALARM_CHANGE"),
+    FCM_CLIENT_CHANGE("FCM_CLIENT_CHANGE"),
+    FCM_EMERGENCY_CONTACT_CHANGE("FCM_EMERGENCY_CONTACT_CHANGE"),
     CALL("CALL"),
     NOTIFICATION_SUCCESS("NOTIFICATION_SUCCESS")
 }

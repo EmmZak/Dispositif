@@ -2,11 +2,13 @@ package com.app.app
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.app.app.db.AppRepository
 
 import org.junit.Test
 import org.junit.runner.RunWith
 
 import org.junit.Assert.*
+import org.junit.Ignore
 
 /**
  * Instrumented test, which will execute on an Android device.
@@ -15,6 +17,15 @@ import org.junit.Assert.*
  */
 @RunWith(AndroidJUnit4::class)
 class ExampleInstrumentedTest {
+
+    var appRepo: AppRepository = AppRepository()
+
+    @Test
+    fun test() {
+        appRepo.findApp()
+    }
+
+    @Ignore
     @Test
     fun useAppContext() {
         // Context of the app under test.

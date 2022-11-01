@@ -6,6 +6,9 @@ import android.view.View
 import androidx.core.app.ActivityCompat
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.app.PendingIntent.FLAG_IMMUTABLE
 import android.content.Context
 import java.lang.Exception
 import java.util.*
@@ -30,7 +33,6 @@ import android.speech.tts.UtteranceProgressListener
 import android.telecom.Call
 
 import android.telecom.TelecomManager
-import android.view.WindowManager
 import androidx.core.content.PermissionChecker
 import androidx.core.net.toUri
 import com.app.app.R
@@ -42,19 +44,18 @@ import com.app.app.service.gps.GpsService
 import com.app.app.service.permission.AppPermissionService
 import com.app.app.service.vibrator.VibratorService
 import android.view.animation.AnimationUtils
-import androidx.core.app.NotificationCompat
+import android.widget.TextView
 import com.app.app.config.Config
 import com.app.app.config.SMSTemplate
+import com.app.app.db.AppRepository
 import com.app.app.dto.FcmObjectData
 import com.app.app.enums.EventType
+import com.app.app.model.App
+import com.app.app.service.AlarmListener
+import com.app.app.service.AlarmReceiver
 import com.app.app.service.EventService
 import com.app.app.service.FCM
-import com.app.app.utils.Utils
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONObject
 import kotlin.system.exitProcess
 
 class UtteranceManager: UtteranceProgressListener() {
@@ -93,6 +94,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
      * Call
      */
     private var CALL_STATE: Int = -1
+    var EMERGENCY_NUMBER: String = ""
 
     /**
      * TTS
@@ -112,6 +114,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     // call
     var callDialog : CallDialog? = null
 
+    /**
+     * App
+     */
+    var repo: AppRepository = AppRepository()
+    var app: App? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -123,6 +131,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         //window.setFlags(android.R.attr.windowFullscreen, android.R.attr.windowFullscreen )
         setContentView(R.layout.activity_main)
+
+        //app = dbService.findApp()
+        repo.findApp()
+        setupAlarms()
+        //setupClients()
+        setupEmergencyContact()
 
         ActivityCompat.requestPermissions(this,
             arrayOf(
@@ -172,6 +186,69 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         EventBus.getDefault().register(this);
     }
 
+    private fun setupEmergencyContact() {
+        Log.e(TAG, "setting up emergency contact")
+        repo.findEmergencyContact()
+            .addOnSuccessListener { contactDoc ->
+                val contact = contactDoc.data
+                Log.e(TAG, "app client doc $contact")
+                if (contact == null) {
+                    Log.e(TAG, "emergency contact doc is null")
+                    return@addOnSuccessListener
+                }
+                Log.e(TAG, "setting emergency contact doc $contact")
+                EMERGENCY_NUMBER = contact["number"] as String
+                val text = "${contact["name"]} ${contact["number"]}"
+                findViewById<TextView>(R.id.emergencyContactName).text = text as CharSequence?
+            }
+            .addOnFailureListener {
+                Log.e(TAG, "error while loading app clients $it")
+                println("found app $it")
+            }
+    }
+
+    private fun setupAlarms() {
+        val cal = Calendar.getInstance()
+        cal.add(Calendar.MINUTE, 1)
+        Log.e(TAG, "alarm at ${cal.time}")
+
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+        val alarms = arrayOf(
+            mapOf("tts" to "Toutes les 1 min", "freq" to 1*60*1000L),
+            mapOf("tts" to "Toutes les 2 min", "freq" to 2*60*1000L)
+        )
+
+        alarms.forEachIndexed { i, alarm ->
+            val intent = Intent(this, AlarmReceiver::class.java)
+            intent.putExtra("tts", alarm["tts"])
+            val pendingIntent = PendingIntent.getBroadcast(this, i, intent, PendingIntent.FLAG_MUTABLE)
+            alarmManager.setRepeating(
+                AlarmManager.RTC_WAKEUP,
+                0,
+                alarm["freq"] as Long,
+                pendingIntent
+            )
+        }
+        //alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, 0, 15*1000, pendingIntent)
+
+        //repo.findAlarms()
+    }
+
+    private fun setupClients() {
+        repo.findClients()
+            .addOnSuccessListener { app ->
+                app.documents.map { clientDoc ->
+                    val client = clientDoc.data
+                    Log.e(TAG, "app client doc $client")
+                }
+            }
+            .addOnFailureListener {
+                Log.e(TAG, "error while loading app clients $it")
+                println("found app $it")
+            }
+    }
+
     private fun setupPermissions() {
         // sms
         Log.e(TAG, "check sms permission")
@@ -212,10 +289,14 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 //            sendNotif(view.tag as String)
 //        }
 
-        findViewById<ImageView>(R.id.callIcon1).setOnClickListener { view ->
+        findViewById<ImageView>(R.id.emergencyContactCall).setOnClickListener { view ->
             val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_call)
             view.startAnimation(anim)
-            call(Contact.Emmanuel.number)
+            if (EMERGENCY_NUMBER == "") {
+                Log.e(TAG, "emergency number is empty")
+                return@setOnClickListener
+            }
+            call(EMERGENCY_NUMBER)
         }
 
     }
@@ -327,13 +408,13 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
         if (capabilities != null) {
             if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
-                Log.i("Internet", "NetworkCapabilities.TRANSPORT_CELLULAR")
+                Log.i(TAG, "NetworkCapabilities.TRANSPORT_CELLULAR")
                 return true
             } else if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-                Log.i("Internet", "NetworkCapabilities.TRANSPORT_WIFI")
+                Log.i(TAG, "NetworkCapabilities.TRANSPORT_WIFI")
                 return true
             } else if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
-                Log.i("Internet", "NetworkCapabilities.TRANSPORT_ETHERNET")
+                Log.i(TAG, "NetworkCapabilities.TRANSPORT_ETHERNET")
                 return true
             }
         }
@@ -355,10 +436,14 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             EventType.FCM_SOS -> onSosEvent(eventObject)
             EventType.FCM_CONFIG -> TODO()
             EventType.FCM_SUBSCRIBE -> TODO()
+            EventType.FCM_ALARM_CHANGE -> setupAlarms()
+            EventType.FCM_CLIENT_CHANGE -> setupClients()
+            EventType.FCM_EMERGENCY_CONTACT_CHANGE -> setupEmergencyContact()
 
             EventType.CALL -> onCallEvent(eventObject)
             EventType.NOTIFICATION_SUCCESS -> TODO()
-            else -> Log.e(TAG, "${eventObject.event} is not supported in EventType enum")
+            //else -> Log.e(TAG, "${eventObject.event} is not supported in EventType enum")
+            EventType.FCM_TTS_ERROR -> TODO()
         }
 
 
