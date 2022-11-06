@@ -340,12 +340,14 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             if (state == Call.STATE_ACTIVE /* == 4 */) {
                 Log.e(TAG, "In Call ...")
                 //callDialog = CallDialog.newInstance("Emmanuel", "En appel avec")
+                val number = eventObject.data["number"] as String
+                val name = Contact.getContactNameByNumber(number)
                 if (callDialog != null) {
                     Log.e(TAG, "Updating in call dialog")
-                    callDialog!!.updateUI( "Emmanuel", "En appel avec ...", 1)
+                    callDialog!!.updateUI( name, "En appel avec ...", 1)
                 } else {
                     Log.e(TAG, "callDialog is null creating one")
-                    callDialog = CallDialog.newInstance("Emmanuel", "En appel avec ...", 1)
+                    callDialog = CallDialog.newInstance(name, "En appel avec ...", 1)
                     callDialog!!.isCancelable = false
                     (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
                 }
