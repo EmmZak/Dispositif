@@ -49,12 +49,14 @@ import com.app.app.config.Config
 import com.app.app.config.SMSTemplate
 import com.app.app.db.AppRepository
 import com.app.app.dto.FcmObjectData
+import com.app.app.enums.AlarmFrequency
 import com.app.app.enums.EventType
 import com.app.app.model.App
 import com.app.app.service.AlarmListener
 import com.app.app.service.AlarmReceiver
 import com.app.app.service.EventService
 import com.app.app.service.FCM
+import com.google.firebase.Timestamp
 import okhttp3.OkHttpClient
 import kotlin.system.exitProcess
 
@@ -94,7 +96,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
      * Call
      */
     private var CALL_STATE: Int = -1
-    var EMERGENCY_NUMBER: String = ""
+    var EMERGENCY_CONTACT_NUMBER: String = ""
+    var EMERGENCY_CONTACT_NAME: String = ""
 
     /**
      * TTS
@@ -120,6 +123,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     var repo: AppRepository = AppRepository()
     var app: App? = null
 
+    /**
+     * Alarms
+     */
+    var intentRequestCodes = IntArray(0)
+
+    @RequiresApi(Build.VERSION_CODES.S)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -133,8 +142,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         setContentView(R.layout.activity_main)
 
         //app = dbService.findApp()
-        repo.findApp()
-        setupAlarms()
+        //repo.findApp()
+        //setupLocalStorage()
+        //setupAlarms()
         //setupClients()
         setupEmergencyContact()
 
@@ -177,6 +187,26 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         Log.e(TAG, "numbers ${numbers[0]}")
     }
 
+    private fun setupLocalStorage() {
+        val KEY = "text"
+
+        val store = this.getSharedPreferences("alarm", Context.MODE_PRIVATE)
+
+        Log.e(TAG, "all ${store.all}")
+
+        var text = store.getString(KEY, "default")
+        Log.e(TAG, "alarm text $text")
+
+        Log.e(TAG, "setting alarm text")
+        with (store.edit()) {
+            putString(KEY, "alarm text stored")
+            apply()
+        }
+
+        text = store.getString(KEY, "default")
+        Log.e(TAG, "alarm text $text")
+    }
+
     override fun onStart() {
         super.onStart()
         Log.e(TAG, "On start before replaceDefaultDialer")
@@ -197,7 +227,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     return@addOnSuccessListener
                 }
                 Log.e(TAG, "setting emergency contact doc $contact")
-                EMERGENCY_NUMBER = contact["number"] as String
+                EMERGENCY_CONTACT_NUMBER = contact["number"] as String
+                EMERGENCY_CONTACT_NAME = contact["name"] as String
                 val text = "${contact["name"]} ${contact["number"]}"
                 findViewById<TextView>(R.id.emergencyContactName).text = text as CharSequence?
             }
@@ -207,32 +238,83 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             }
     }
 
+    @SuppressLint("UnspecifiedImmutableFlag")
+    private fun removeAlarms() {
+
+        //val sharedPref = this.getPreferences(Context.MODE_PRIVATE) ?: return
+        //sharedPref.get
+
+        (1..5).forEach { requestCode ->
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val intent = Intent(this, AlarmReceiver::class.java)
+            val pendingIntent = PendingIntent.getBroadcast(this, requestCode, intent, PendingIntent.FLAG_NO_CREATE)
+
+            try {
+                Log.e(TAG, "removing alarms")
+                alarmManager.cancel(pendingIntent)
+                pendingIntent.cancel()
+            } catch (e: Exception) {
+                Log.e(TAG, "e $e")
+            }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
     private fun setupAlarms() {
-        val cal = Calendar.getInstance()
-        cal.add(Calendar.MINUTE, 1)
-        Log.e(TAG, "alarm at ${cal.time}")
+        //val cal = Calendar.getInstance()
+        //cal.add(Calendar.MINUTE, 1)
+        //Log.e(TAG, "alarm at ${cal.time}")
+        removeAlarms()
 
+        repo.findAlarms()
+            .addOnSuccessListener { app ->
+                val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+                app.documents.forEachIndexed { requestCode, alarmDoc ->
+                    val alarm = alarmDoc.data
+                    Log.e(TAG, "alarm $alarm")
+                    if (alarm == null || !(alarm["active"] as Boolean)) {
+                        return@forEachIndexed
+                    }
+                    val intent = Intent(this, AlarmReceiver::class.java)
+                    intent.putExtra("text", alarm["text"] as String)
+                    val pendingIntent = PendingIntent.getBroadcast(this, requestCode, intent, PendingIntent.FLAG_IMMUTABLE)
+                    intentRequestCodes = intentRequestCodes.plus(requestCode)
+
+                    val date = alarm["datetime"] as Timestamp
+                    val millis = date.seconds*1000
+
+                    Log.e(TAG, "${alarm["frequencyType"]} alarm at ${date.toDate()}, millis $millis, ${alarm["text"]} ")
+
+                    //AlarmManager.Alarm
+
+                    when(alarm["frequencyType"]) {
+                        AlarmFrequency.ONCE.name -> alarmManager.setExact(AlarmManager.RTC_WAKEUP, millis, pendingIntent)
+                        AlarmFrequency.REPEATING.name -> alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, millis, alarm["frequency"] as Long, pendingIntent)
+                    }
+                }
+            }
+            .addOnFailureListener {
+                Log.e(TAG, "error while loading app alarms $it")
+                println("found app $it")
+            }
+        /*
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-
         val alarms = arrayOf(
-            mapOf("tts" to "Toutes les 1 min", "freq" to 1*60*1000L),
-            mapOf("tts" to "Toutes les 2 min", "freq" to 2*60*1000L)
+            mapOf("tts" to "Toutes les 1 min", "frequencyType" to "ONCE", "frequency" to 1*60*1000L),
+            mapOf("tts" to "Toutes les 2 min", "frequencyType" to "REPEATING", "frequency" to 1*60*1000L)
         )
 
         alarms.forEachIndexed { i, alarm ->
             val intent = Intent(this, AlarmReceiver::class.java)
             intent.putExtra("tts", alarm["tts"])
             val pendingIntent = PendingIntent.getBroadcast(this, i, intent, PendingIntent.FLAG_MUTABLE)
-            alarmManager.setRepeating(
-                AlarmManager.RTC_WAKEUP,
-                0,
-                alarm["freq"] as Long,
-                pendingIntent
-            )
-        }
-        //alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, 0, 15*1000, pendingIntent)
 
-        //repo.findAlarms()
+            when(alarm["frequencyType"]) {
+                AlarmFrequency.ONCE -> alarmManager.setExact(AlarmManager.RTC_WAKEUP, 0, pendingIntent)
+                AlarmFrequency.REPEATING -> alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, 0, alarm["freq"] as Long, pendingIntent)
+            }
+        } */
     }
 
     private fun setupClients() {
@@ -292,11 +374,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         findViewById<ImageView>(R.id.emergencyContactCall).setOnClickListener { view ->
             val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_call)
             view.startAnimation(anim)
-            if (EMERGENCY_NUMBER == "") {
+            if (EMERGENCY_CONTACT_NUMBER == "") {
                 Log.e(TAG, "emergency number is empty")
                 return@setOnClickListener
             }
-            call(EMERGENCY_NUMBER)
+            call(EMERGENCY_CONTACT_NUMBER)
         }
 
     }
@@ -421,6 +503,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         return false
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onEvent(eventObject: EventObject) {
         Log.e(TAG, "onEvent event object $eventObject")
@@ -442,7 +525,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
             EventType.CALL -> onCallEvent(eventObject)
             EventType.NOTIFICATION_SUCCESS -> TODO()
-            //else -> Log.e(TAG, "${eventObject.event} is not supported in EventType enum")
+
             EventType.FCM_TTS_ERROR -> TODO()
         }
 
@@ -473,7 +556,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             // Outgoing call
             if (CALL_STATE == Call.STATE_CONNECTING /* == 9 */) {
                 Log.e(TAG, "Dialing ...")
-                callDialog = CallDialog.newInstance("Emmanuel", "Appel en cours ...", 1)
+                callDialog = CallDialog.newInstance(EMERGENCY_CONTACT_NAME, "Appel en cours ...", 1)
                 callDialog!!.isCancelable = false
                 (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
 
@@ -524,7 +607,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 //                     (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
 //                }
                 callDialog?.dismiss()
-                callDialog = CallDialog.newInstance("Emmanuel", "Appel entrant ...", 2)
+                val number = eventObject.data["number"] as String
+                val name = Contact.getContactNameByNumber(number)
+                callDialog = CallDialog.newInstance(name, "Appel entrant ...", 2)
                 callDialog!!.isCancelable = false
                 (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
             }

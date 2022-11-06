@@ -18,6 +18,7 @@ class CallService : InCallService() {
      *      Outgoing Call -> Call.CONNECTING -> 9
      */
     override fun onCallAdded(call: Call) {
+        Log.e(TAG, "call details handle ${call.details.handle}")
         Log.e(TAG,"onCallAdded state ${call.state}  $call ")
         CallService.call = call
 
@@ -36,9 +37,14 @@ class CallService : InCallService() {
     }
 
     private fun emit(call: Call) {
+        val handle = call.details.handle
+        val number = handle.schemeSpecificPart
+        Log.e(TAG, "call number $number")
         val data = hashMapOf(
-            "state" to call.state
+            "state" to call.state,
+            "number" to number
         )
+
         val o = EventObject(EventType.CALL, data as Map<String, Any>)
         EventBus.getDefault().post(o)
     }

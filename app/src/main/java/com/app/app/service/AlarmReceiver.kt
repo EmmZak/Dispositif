@@ -13,7 +13,7 @@ class AlarmReceiver: BroadcastReceiver(){
 
     override fun onReceive(context: Context, intent: Intent) {
         val extras = intent.extras
-        Log.e(TAG, "alarm received at ${Date()} ${intent.getStringExtra("tts")}")
+        Log.e(TAG, "alarm received at ${Date()} ${intent.getStringExtra("text")}")
     }
 
 }
