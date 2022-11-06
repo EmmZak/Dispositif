@@ -111,7 +111,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         vibratorService = VibratorService(this)
         gpsService = GpsService(this)
 
-        val numbers = Contact.getAll()
+        val numbers = Contact.getAllNumbers()
         Log.e(TAG, "numbers ${numbers[0]}")
     }
 
@@ -177,36 +177,23 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             sendNotif(view.tag as String)
         }
 
-        if (TABLET_MODE) {
-            findViewById<LinearLayout>(R.id.callCard1).setOnClickListener { view ->
-                val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_call)
-                view.startAnimation(anim)
-                call(Contact.Emmanuel.number)
-            }
-            findViewById<LinearLayout>(R.id.callCard2).setOnClickListener {view ->
-                val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_call)
-                view.startAnimation(anim)
-                call(Contact.Alexandre.number)
-            }
-        } else {
-            findViewById<ImageView>(R.id.callCard1).setOnClickListener {view ->
-                val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_call)
-                view.startAnimation(anim)
-                call(Contact.Emmanuel.number)
-            }
-            findViewById<ImageView>(R.id.callCard2).setOnClickListener {view ->
-                val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_call)
-                view.startAnimation(anim)
-                call(Contact.Alexandre.number)
-            }
+        findViewById<LinearLayout>(R.id.callCard1).setOnClickListener { view ->
+            val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_call)
+            view.startAnimation(anim)
+            call(Contact.Emmanuel.tenDigitNumber)
+        }
+        findViewById<LinearLayout>(R.id.callCard2).setOnClickListener {view ->
+            val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_call)
+            view.startAnimation(anim)
+            call(Contact.Alexandre.tenDigitNumber)
         }
     }
 
     private fun sendNotif(tag: String) {
         Log.e(TAG, "tag $tag")
         when(tag) {
-            "OK" -> sendSms(Contact.getAll(), SMSTemplate.OK.text)
-            "KO" -> sendSms(Contact.getAll(), SMSTemplate.KO.text)
+            "OK" -> sendSms(Contact.getAllNumbers(), SMSTemplate.OK.text)
+            "KO" -> sendSms(Contact.getAllNumbers(), SMSTemplate.KO.text)
             "SOS" -> sendSos()
         }
     }
@@ -225,8 +212,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     mapUrl
                 )
                 Log.e(TAG, "text $text2")
-                sendSms(Contact.getAll(), text1)
-                sendSms(Contact.getAll(), text2)
+                sendSms(Contact.getAllNumbers(), text1)
+                sendSms(Contact.getAllNumbers(), text2)
             }
             ?.addOnFailureListener {
                 Log.e(TAG, "error")
@@ -316,7 +303,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             // Outgoing call
             if (state == Call.STATE_CONNECTING /* == 9 */) {
                 //Log.e(TAG, "Dialing ...")
-                callDialog = CallDialog.newInstance("Emmanuel", "Appel en cours ...", 1)
+                val number = eventObject.data["number"] as String
+                val name = Contact.getContactNameByNumber(number)
+                callDialog = CallDialog.newInstance(name, "Appel en cours ...", 1)
                 callDialog!!.isCancelable = false
                 (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
             }
@@ -334,7 +323,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     }
                 } else {
                      callDialog?.dismiss()
-                     callDialog = CallDialog.newInstance("Emmanuel", "Appel entrant ...", 2)
+                     val number = eventObject.data["number"] as String
+                     val name = Contact.getContactNameByNumber(number)
+                     callDialog = CallDialog.newInstance(name, "Appel entrant ...", 2)
                      callDialog!!.isCancelable = false
                      (callDialog as CallDialog).show(supportFragmentManager, "call dialog")
                 }

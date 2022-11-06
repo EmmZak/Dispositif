@@ -21,11 +21,11 @@ class SmsService(val context: Context) {
     val TAG = "SmsService manu"
 
     fun sendOK() {
-        sendSms(Contact.getAll(), SMSTemplate.OK.text)
+        sendSms(Contact.getAllNumbers(), SMSTemplate.OK.text)
     }
 
     fun sendKO() {
-        sendSms(Contact.getAll(), SMSTemplate.KO.text)
+        sendSms(Contact.getAllNumbers(), SMSTemplate.KO.text)
     }
 
     fun sendSOS() {

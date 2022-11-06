@@ -28,6 +28,7 @@ class CallService : InCallService() {
         emit(call)
     }
 
+
     /**
      * This callback handles
      *      Call Ended -> Call.DISCONNECTED ->
@@ -40,8 +41,12 @@ class CallService : InCallService() {
     }
 
     private fun emit(call: Call) {
+        val handle = call.details.handle
+        val number = handle.schemeSpecificPart
+        Log.e(TAG, "call number $number")
         val data = hashMapOf(
-            "state" to call.state
+            "state" to call.state,
+            "number" to number
         )
         val o = EventObject(EventType.CALL, data as Map<String, Any>)
         EventBus.getDefault().post(o)
