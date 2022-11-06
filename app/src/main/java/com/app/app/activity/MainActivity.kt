@@ -364,12 +364,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private fun setupOnClickListeners() {
 
-//        findViewById<ImageView>(R.id.imageViewSos).setOnClickListener { view ->
-//            val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_notif)
-//            view.startAnimation(anim)
-//
-//            sendNotif(view.tag as String)
-//        }
+        findViewById<ImageView>(R.id.sos).setOnClickListener { view ->
+            val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_notif)
+            view.startAnimation(anim)
+
+            sendNotif(view.tag as String)
+        }
 
         findViewById<ImageView>(R.id.emergencyContactCall).setOnClickListener { view ->
             val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_call)
@@ -541,9 +541,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         if (eventObject.event == EventType.FCM_SOS) {
             Log.e(TAG, "$eventObject")
             val text = "Une alerte SOS va être envoyée"
-
             speak(text)
-
             sendSos()
         }
     }
