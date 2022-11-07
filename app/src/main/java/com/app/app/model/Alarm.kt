@@ -7,6 +7,9 @@ data class Alarm(
     var uid: String,
     var active: Boolean,
     var text: String,
-    var datetime: Date?,
+    var date: Date?,
     var frequencyType: AlarmFrequency,
     var frequency: Long?)
+{
+    constructor(): this("", false, "", null, AlarmFrequency.ONCE, null)
+}

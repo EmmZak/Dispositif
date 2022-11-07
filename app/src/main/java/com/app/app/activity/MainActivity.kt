@@ -13,7 +13,6 @@ import android.content.Context
 import java.lang.Exception
 import java.util.*
 import android.speech.tts.TextToSpeech
-import android.widget.Toast
 import com.app.app.service.call.CallService
 import com.app.app.service.sms.SmsService
 
@@ -24,9 +23,9 @@ import org.greenrobot.eventbus.ThreadMode
 import org.greenrobot.eventbus.Subscribe
 
 import android.os.*
-import android.widget.ImageView
 import android.content.Intent
 import android.location.Location
+import android.media.Image
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.speech.tts.UtteranceProgressListener
@@ -44,7 +43,8 @@ import com.app.app.service.gps.GpsService
 import com.app.app.service.permission.AppPermissionService
 import com.app.app.service.vibrator.VibratorService
 import android.view.animation.AnimationUtils
-import android.widget.TextView
+import android.widget.*
+import androidx.core.view.isGone
 import com.app.app.config.Config
 import com.app.app.config.SMSTemplate
 import com.app.app.db.AppRepository
@@ -128,6 +128,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
      */
     var intentRequestCodes = IntArray(0)
 
+    /**
+     * Progress Bar
+     */
+    var IS_SETUP_DONE = false
+
     @RequiresApi(Build.VERSION_CODES.S)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -141,8 +146,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         //window.setFlags(android.R.attr.windowFullscreen, android.R.attr.windowFullscreen )
         setContentView(R.layout.activity_main)
 
+        setProgressScreen(true)
+
         //app = dbService.findApp()
-        //repo.findApp()
+        repo.findApp()
         //setupLocalStorage()
         //setupAlarms()
         //setupClients()
@@ -185,6 +192,13 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         val numbers = Contact.getAllNumbers()
         Log.e(TAG, "numbers ${numbers[0]}")
+    }
+
+    private fun setProgressScreen(isProgress: Boolean) {
+        findViewById<ImageView>(R.id.emergencyContactCall).isGone = isProgress
+        findViewById<ImageView>(R.id.emergencyContactName).isGone = isProgress
+        findViewById<ImageView>(R.id.sos).isGone = isProgress
+        findViewById<ProgressBar>(R.id.progressBar).isGone =!isProgress
     }
 
     private fun setupLocalStorage() {
@@ -231,6 +245,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 EMERGENCY_CONTACT_NAME = contact["name"] as String
                 val text = "${contact["name"]} ${contact["number"]}"
                 findViewById<TextView>(R.id.emergencyContactName).text = text as CharSequence?
+
+                setProgressScreen(false)
             }
             .addOnFailureListener {
                 Log.e(TAG, "error while loading app clients $it")

@@ -1,6 +1,6 @@
 package com.app.app.model
 
-class App(
+data class App(
     var uid: String,
     var token: String,
     var number: String,
@@ -8,5 +8,5 @@ class App(
     var alarms: List<Alarm>,
     var clients: List<Client>
 ) {
-
+    constructor() : this("", "", "", "", arrayListOf<Alarm>(), arrayListOf<Client>())
 }

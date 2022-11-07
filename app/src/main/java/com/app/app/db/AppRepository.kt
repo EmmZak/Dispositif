@@ -16,9 +16,18 @@ class AppRepository {
 
     fun findApp() {
         db.collection(AppConfig.COLLECTION).document(AppConfig.APP_ID).get()
-            .addOnSuccessListener { app ->
+            .addOnSuccessListener { appDoc ->
                 //var a: App? = app.toObject(App)
-                Log.e(TAG, "app data ${app.data}")
+                Log.e(TAG, "appDoc data ${appDoc.data}")
+                val app = appDoc.toObject(App::class.java)
+
+                if (app != null) {
+                    app.uid = appDoc.id
+                    Log.e(TAG, "app $app")
+                    Log.e(TAG, "app.alarms ${app.alarms}")
+                } else {
+                    Log.e(TAG, "app model is null")
+                }
             }
             .addOnFailureListener {
                 Log.e(TAG, "error while loading app")

@@ -6,4 +6,6 @@ data class Client(
     var number: String,
     var isEmergencyConcat: Boolean,
     var name: String
-    )
+    ) {
+    constructor(): this("", "", "", false, "")
+}
