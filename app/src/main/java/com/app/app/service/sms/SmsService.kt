@@ -11,21 +11,22 @@ import androidx.core.app.ActivityCompat
 import com.app.app.config.SMSTemplate
 import com.app.app.exception.SmsException
 import com.app.app.service.call.Contact
+import com.app.app.service.vibrator.VibratorService
 import com.app.app.utils.Utils
 import java.io.File
 import java.lang.Exception
 
-class SmsService(val context: Context) {
+class SmsService(val vibratorService: VibratorService) {
 
     val SENDING = false
     val TAG = "SmsService manu"
 
-    fun sendOK() {
-        sendSms(Contact.getAllNumbers(), SMSTemplate.OK.text)
+    fun sendOK(context: Context) {
+        sendSms(context, Contact.getAllNumbers(), SMSTemplate.OK.text)
     }
 
-    fun sendKO() {
-        sendSms(Contact.getAllNumbers(), SMSTemplate.KO.text)
+    fun sendKO(context: Context) {
+        sendSms(context, Contact.getAllNumbers(), SMSTemplate.KO.text)
     }
 
     fun sendSOS() {
@@ -36,10 +37,10 @@ class SmsService(val context: Context) {
 
     }
 
-    fun sendSms(number: String, message: String) {
-        if (!isSmsPermissionGranted()) {
+    fun sendSms(context: Context, number: String, message: String) {
+        if (!isSmsPermissionGranted(context)) {
             try {
-                requestSmsPermission()
+                requestSmsPermission(context)
             } catch(e: Exception) {
                 Log.e(TAG, "PERMISSION.exception ${e.toString()}")
                 throw e
@@ -59,34 +60,33 @@ class SmsService(val context: Context) {
         }
     }
 
-    fun sendSms(numbers: Array<String>, message: String) {
-        if (!isSmsPermissionGranted()) {
+    fun sendSms(context: Context, numbers: Array<String>, message: String) {
+        /*if (!isSmsPermissionGranted(context)) {
             try {
-                requestSmsPermission()
+                requestSmsPermission(context)
             } catch(e: Exception) {
                 Log.e(TAG, "PERMISSION.exception ${e.toString()}")
                 throw e
             }
-        }
+        }*/
         Log.e(TAG, "sms permission OK")
         try {
             val finalMessage = "[${Utils.getFormattedDateTime()}] $message"
-
-            Log.e(TAG, "$finalMessage")
+            Log.e(TAG, finalMessage)
             for(number in numbers) {
                 SmsManager.getDefault().sendTextMessage(number, null, finalMessage, null, null)
             }
-
+            vibratorService.vibrate(1000)
         } catch(e: Exception) {
             Log.e(TAG, "SEND.exception ${e.toString()}")
             throw SmsException(e.toString())
         }
     }
 
-    fun sendMms(number: String, OUTPUT_DIR: String, FILE_NAME: String) {
-        if (!isSmsPermissionGranted()) {
+    fun sendMms(context: Context, number: String, OUTPUT_DIR: String, FILE_NAME: String) {
+        if (!isSmsPermissionGranted(context)) {
             try {
-                requestSmsPermission()
+                requestSmsPermission(context)
             } catch(e: Exception) {
                 Log.e(TAG, "PERMISSION.exception ${e.toString()}")
                 throw SmsException(e.toString())
@@ -121,7 +121,7 @@ class SmsService(val context: Context) {
 
     }
 
-    private fun isSmsPermissionGranted(): Boolean {
+    private fun isSmsPermissionGranted(context: Context): Boolean {
         val granted = ActivityCompat.checkSelfPermission(
             context,
             Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED
@@ -129,7 +129,7 @@ class SmsService(val context: Context) {
         return granted
     }
 
-    private fun requestSmsPermission() {
+    private fun requestSmsPermission(context: Context) {
         val requestSendSms: Int = 2
         ActivityCompat.requestPermissions(context as Activity, arrayOf(Manifest.permission.SEND_SMS), requestSendSms)
     }

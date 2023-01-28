@@ -24,7 +24,9 @@ import org.greenrobot.eventbus.Subscribe
 
 import android.os.*
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.location.Location
+import android.location.LocationRequest
 import android.media.Image
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -51,12 +53,19 @@ import com.app.app.db.AppRepository
 import com.app.app.dto.FcmObjectData
 import com.app.app.enums.AlarmFrequency
 import com.app.app.enums.EventType
+import com.app.app.model.Alarm
 import com.app.app.model.App
 import com.app.app.service.AlarmListener
 import com.app.app.service.AlarmReceiver
 import com.app.app.service.EventService
 import com.app.app.service.FCM
+import com.app.app.service.alarm.AlarmService
+import com.app.app.service.tts.TtsService
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.firebase.Timestamp
+import com.google.gson.Gson
 import okhttp3.OkHttpClient
 import kotlin.system.exitProcess
 
@@ -80,8 +89,6 @@ class UtteranceManager: UtteranceProgressListener() {
 
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
-    var SENDING = false
-
     val TAG = "MainActivity manu"
 
     // audio recording
@@ -92,46 +99,46 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     //val pop = AudioRecordingDialog()
     val httpClient = OkHttpClient()
 
-    /**
-     * Call
-     */
+    // Call
     private var CALL_STATE: Int = -1
-    var EMERGENCY_CONTACT_NUMBER: String = ""
-    var EMERGENCY_CONTACT_NAME: String = ""
+    private var EMERGENCY_CONTACT_NUMBER: String = ""
+    private var EMERGENCY_CONTACT_NAME: String = ""
 
-    /**
-     * TTS
-     */
-    private lateinit var tts: TextToSpeech
+    // TTS
+    private var tts: TextToSpeech = TextToSpeech(this, this)
 
-    /**
-     * services
-     */
-    var smsService: SmsService? = null
-    var callService: CallService? = null
-    var vibratorService: VibratorService? = null
-    var gpsService: GpsService? = null
+    // Services
+    private var ttsService: TtsService = TtsService(this)
+    private var vibratorService: VibratorService = VibratorService(this)
+    private var smsService: SmsService = SmsService(vibratorService)
+    private var callService: CallService = CallService()
+    private var gpsService: GpsService = GpsService(this)
+    private val alarmService: AlarmService = AlarmService(this)
 
-    var eventService: EventService? = null
+    private var eventService: EventService? = null
 
     // call
-    var callDialog : CallDialog? = null
+    private var callDialog : CallDialog? = null
 
-    /**
-     * App
-     */
-    var repo: AppRepository = AppRepository()
-    var app: App? = null
+    // App
+    private var repo: AppRepository = AppRepository()
+    private var app: App? = null
 
-    /**
-     * Alarms
-     */
-    var intentRequestCodes = IntArray(0)
+    // Alarms
+    private var intentRequestCodes = IntArray(0)
 
     /**
      * Progress Bar
      */
-    var IS_SETUP_DONE = false
+    private var IS_SETUP_DONE = false
+
+    /**
+     * UI elements
+     */
+    lateinit var emergencyCallBtnView: ImageView
+    lateinit var emergencyContactView: TextView
+    lateinit var sosBtnView: ImageView
+    lateinit var progressBarView: ProgressBar
 
     @RequiresApi(Build.VERSION_CODES.S)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -142,18 +149,43 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             Toast.makeText(this, "Pas de connexion internet", Toast.LENGTH_LONG).show()
             exitProcess(-1)
         }
-
         //window.setFlags(android.R.attr.windowFullscreen, android.R.attr.windowFullscreen )
         setContentView(R.layout.activity_main)
-
         setProgressScreen(true)
+
+        emergencyCallBtnView = findViewById(R.id.emergencyContactCall)
+        emergencyContactView = findViewById(R.id.emergencyContactName)
+        sosBtnView = findViewById(R.id.sos)
+        progressBarView = findViewById(R.id.progressBar)
 
         //app = dbService.findApp()
         repo.findApp()
+            .addOnSuccessListener { appDoc ->
+                if (appDoc.data == null) {
+                    Log.e(TAG, "appDoc.data is null")
+                    return@addOnSuccessListener
+                }
+                app = appDoc.toObject(App::class.java)
+                if (app == null) {
+                    Log.e(TAG, "app model is null")
+                    return@addOnSuccessListener
+                }
+                app!!.uid = appDoc.id
+                //Log.e(TAG, "app $app")
+                //Log.e(TAG, "app.alarms ${app.alarms}")
+                //Log.e(TAG, "app.clients ${app.clients}")
+                //Log.e(TAG, "app.lastLocation ${app.lastLocation}")
+                Log.e(TAG, "app.emergencyContact ${app!!.emergencyContact}")
+                setupEmergencyContact()
+                alarmService.setAlarms(app!!.alarms)
+            }
+            .addOnFailureListener {
+                Log.e(TAG, "error while loading app")
+                println("found app $it")
+            }
         //setupLocalStorage()
         //setupAlarms()
         //setupClients()
-        setupEmergencyContact()
 
         ActivityCompat.requestPermissions(this,
             arrayOf(
@@ -171,7 +203,19 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 .let(::startActivity)
         }
 
-        tts = TextToSpeech(this, this)
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.e(TAG, "fine access location not granted")
+            exitProcess(0)
+        }
+
+        //tts = TextToSpeech(this, this)
         //Log.e(TAG, "default engine ${tts!!.defaultEngine}")
 
         //filename = "${externalCacheDir?.absolutePath}/vocal.3gp"
@@ -183,42 +227,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         // call card on click TABLETT
         setupOnClickListeners()
 
-        callService = CallService()
-        smsService = SmsService(this)
-        vibratorService = VibratorService(this)
-        gpsService = GpsService(this)
-
         //eventService = EventService(this)
 
         val numbers = Contact.getAllNumbers()
         Log.e(TAG, "numbers ${numbers[0]}")
-    }
-
-    private fun setProgressScreen(isProgress: Boolean) {
-        findViewById<ImageView>(R.id.emergencyContactCall).isGone = isProgress
-        findViewById<ImageView>(R.id.emergencyContactName).isGone = isProgress
-        findViewById<ImageView>(R.id.sos).isGone = isProgress
-        findViewById<ProgressBar>(R.id.progressBar).isGone =!isProgress
-    }
-
-    private fun setupLocalStorage() {
-        val KEY = "text"
-
-        val store = this.getSharedPreferences("alarm", Context.MODE_PRIVATE)
-
-        Log.e(TAG, "all ${store.all}")
-
-        var text = store.getString(KEY, "default")
-        Log.e(TAG, "alarm text $text")
-
-        Log.e(TAG, "setting alarm text")
-        with (store.edit()) {
-            putString(KEY, "alarm text stored")
-            apply()
-        }
-
-        text = store.getString(KEY, "default")
-        Log.e(TAG, "alarm text $text")
     }
 
     override fun onStart() {
@@ -231,7 +243,20 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun setupEmergencyContact() {
-        Log.e(TAG, "setting up emergency contact")
+        if (app == null) {
+            Log.e(TAG, "app is null")
+            return
+        }
+        Log.e(TAG, "setting up emergency contact, app.emerg ${app?.emergencyContact}")
+
+        EMERGENCY_CONTACT_NUMBER = app!!.emergencyContact.number
+        EMERGENCY_CONTACT_NAME = app!!.emergencyContact.name
+
+        val text = "$EMERGENCY_CONTACT_NAME $EMERGENCY_CONTACT_NUMBER"
+
+        emergencyContactView.text = text as CharSequence?
+        setProgressScreen(false)
+        /*
         repo.findEmergencyContact()
             .addOnSuccessListener { contactDoc ->
                 val contact = contactDoc.data
@@ -251,7 +276,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             .addOnFailureListener {
                 Log.e(TAG, "error while loading app clients $it")
                 println("found app $it")
-            }
+            } */
     }
 
     @SuppressLint("UnspecifiedImmutableFlag")
@@ -277,10 +302,19 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     @RequiresApi(Build.VERSION_CODES.S)
     private fun setupAlarms() {
+        if (app == null) {
+            Log.e(TAG, "app is null")
+            return
+        }
+        val alarms = app!!.alarms
+        alarmService.setAlarms(alarms)
+
+        //Log.e(TAG, "store.all ${store.all}")
+
         //val cal = Calendar.getInstance()
         //cal.add(Calendar.MINUTE, 1)
         //Log.e(TAG, "alarm at ${cal.time}")
-        removeAlarms()
+        //removeAlarms()
 
         repo.findAlarms()
             .addOnSuccessListener { app ->
@@ -374,20 +408,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
          */
     }
 
-    override fun isFinishing(): Boolean {
-        return super.isFinishing()
+    private fun checkPermissions() {
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
     private fun setupOnClickListeners() {
-
-        findViewById<ImageView>(R.id.sos).setOnClickListener { view ->
-            val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_notif)
-            view.startAnimation(anim)
-
-            sendNotif(view.tag as String)
-        }
-
-        findViewById<ImageView>(R.id.emergencyContactCall).setOnClickListener { view ->
+        emergencyCallBtnView.setOnClickListener { view ->
             val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_call)
             view.startAnimation(anim)
             if (EMERGENCY_CONTACT_NUMBER == "") {
@@ -397,8 +423,15 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             call(EMERGENCY_CONTACT_NUMBER)
         }
 
+        sosBtnView.setOnClickListener { view ->
+            val anim = AnimationUtils.loadAnimation(this, R.anim.zoom_out_notif)
+            view.startAnimation(anim)
+
+            sendNotif(view.tag as String)
+        }
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
     private fun sendNotif(tag: String) {
         Log.e(TAG, "tag $tag")
         when(tag) {
@@ -408,8 +441,21 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
     fun sendSos() {
-        gpsService?.getLocation()
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.e(TAG, "fine location not granted")
+            return
+        }
+        //val cancel = CancellationTokenSource()
+        gpsService.getLocation()
             ?.addOnSuccessListener { loc : Location? ->
                 Log.e(TAG, "location $loc")
                 val mapUrl = "https://www.google.com/maps/search/?api=1&query=${loc?.latitude},${loc?.longitude}"
@@ -433,9 +479,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private fun sendSms(number: Array<String>, text: String) {
         var message: String
         try {
-            smsService?.sendSms(number, text)
+            smsService.sendSms(this, number, text)
             message = "Notification envoyée"
-            vibratorService?.vibrate(1000)
+            //vibratorService.vibrate(1000)
         } catch (e: SmsException) {
             Log.e(TAG, "$e")
             message = "Problème lors de l'envoi de la notification"
@@ -446,7 +492,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun speak(message: String) {
-        try {
+        ttsService.speak(message)
+        /*try {
             val res = tts.speak(message, TextToSpeech.QUEUE_ADD, null, TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID)
 
             if (res == TextToSpeech.ERROR) {
@@ -456,12 +503,14 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             }
         } catch(e: Exception) {
             Log.e(TAG, e.toString())
-        }
+        }*/
     }
 
     @SuppressLint("MissingPermission")
     fun call(number: String) {
         Log.e(TAG, "call ")
+        CallService.call(number, this)
+        /*
         if (PermissionChecker.checkSelfPermission(
                 this,
                 Manifest.permission.CALL_PHONE
@@ -473,6 +522,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 if (isDefaultDialerService()) {
                     //tts!!.speak("L'application n'est pas configurée pour l'appel", TextToSpeech.QUEUE_ADD, null, "")
                 } else {
+
                     startActivity(Intent(Intent.ACTION_CALL, uri))
                 }
             } catch (e: Exception) {
@@ -484,7 +534,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 arrayOf(Manifest.permission.CALL_PHONE),
                 REQUEST_PERMISSION
             )
-        }
+        } */
     }
 
     fun openCallDialog(@Suppress("UNUSED_PARAMETER") view: View?) {
@@ -538,14 +588,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             EventType.FCM_ALARM_CHANGE -> setupAlarms()
             EventType.FCM_CLIENT_CHANGE -> setupClients()
             EventType.FCM_EMERGENCY_CONTACT_CHANGE -> setupEmergencyContact()
-
+            EventType.FCM_LOCATION_UPDATE -> TODO()
             EventType.CALL -> onCallEvent(eventObject)
             EventType.NOTIFICATION_SUCCESS -> TODO()
 
             EventType.FCM_TTS_ERROR -> TODO()
         }
-
-
     }
 
 
@@ -553,6 +601,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
     private fun onSosEvent(eventObject: EventObject) {
         if (eventObject.event == EventType.FCM_SOS) {
             Log.e(TAG, "$eventObject")
@@ -664,9 +713,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             val text = eventObject.data["message"].toString()
             tts.speak(text, TextToSpeech.QUEUE_ADD, null, "")
 
-            val res = gpsService?.getLocation()
+            val res = gpsService.getLocation()
             Log.e(TAG, "res $res")
-            gpsService?.getLocation()
+            gpsService.getLocation()
                 ?.addOnSuccessListener { loc : Location? ->
                     Log.e(TAG, "location $loc")
                     //val mapUrl = "https://www.google.com/maps/@${loc?.latitude},${loc?.longitude},20z"
@@ -715,65 +764,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
-    companion object {
-        const val REQUEST_PERMISSION = 0
-        const val TABLET_MODE = true
-    }
-
-    @RequiresApi(Build.VERSION_CODES.S)
-    fun record(@Suppress("UNUSED_PARAMETER") view: View) {
-/*        Log.e(TAG, "into record")
-        if (isRecording) {
-            Log.e(TAG, "already recording !!!!")
-            return
-        }
-        val micro = findViewById<ImageView>(R.id.microView)
-        micro.setColorFilter(Color.BLUE)
-
-        Log.e(TAG, "starting recording ...")
-        startRecording()
-        isRecording = true
-
-        Handler().postDelayed({
-            Log.e(TAG, "stopped recording")
-            micro.setColorFilter(Color.DKGRAY)
-            isRecording = false
-            stopRecording()
-        }, 5000)*/
-    }
-
-/*    private fun startRecording() {
-        Log.e(TAG, "startRecording()")
-        recorder = MediaRecorder().apply {
-            setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
-            setOutputFile("$OUTPUT_DIR/$FILE_NAME")
-
-            try {
-                prepare()
-            } catch (e: IOException) {
-                Log.e(TAG, "prepare() failed")
-            }
-            start()
-        }
-    }*/
-
-    fun stopRecording() {
-/*        Log.e(TAG, "stop recording")
-        recorder?.apply {
-            stop()
-            reset()
-            release()
-        }
-        recorder = null
-
-        try {
-            //smsService?.sendMms(number1, OUTPUT_DIR, FILE_NAME)
-        } catch(e: Exception) {
-            Log.e(TAG, "$e")
-        }*/
-    }
     // check audio permission
 
     private fun isDefaultDialerService(): Boolean {
@@ -798,9 +788,17 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
+    private fun setProgressScreen(isProgress: Boolean) {
+        emergencyCallBtnView.isGone = isProgress
+        emergencyContactView.isGone = isProgress
+        sosBtnView.isGone = isProgress
+        progressBarView.isGone = !isProgress
+    }
+
     override fun onDestroy() {
         tts.stop()
         tts.shutdown()
+        EventBus.getDefault().unregister(this);
         super.onDestroy()
         Log.d(TAG, "on destroy Removing snapshot")
     }
@@ -808,11 +806,15 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     override fun onStop() {
         tts.stop()
         tts.shutdown()
+        EventBus.getDefault().unregister(this);
+        Log.e(TAG, "On stop triggered")
         super.onStop()
         //recorder?.release()
         //recorder = null
-        EventBus.getDefault().unregister(this);
-        Log.e(TAG, "On stop triggered")
     }
 
+    companion object {
+        const val REQUEST_PERMISSION = 0
+        const val TABLET_MODE = true
+    }
 }

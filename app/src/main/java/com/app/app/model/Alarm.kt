@@ -4,12 +4,12 @@ import com.app.app.enums.AlarmFrequency
 import java.util.*
 
 data class Alarm(
-    var uid: String,
+    var id: Int, // String,
     var active: Boolean,
     var text: String,
-    var date: Date?,
+    var datetime: String,
     var frequencyType: AlarmFrequency,
-    var frequency: Long?)
+    var weekdays: List<Int>)
 {
-    constructor(): this("", false, "", null, AlarmFrequency.ONCE, null)
+    constructor(): this(0, false, "", "", AlarmFrequency.ONCE, emptyList())
 }

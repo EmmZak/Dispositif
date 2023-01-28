@@ -6,6 +6,7 @@ package com.app.app.enums
  * FCM_TTS       -> speak message
  * FCM_TTS_ERROR -> tts not working
  * FCM_LOCATION  -> send location notif
+ * FCM_LOCATION_UPDATE -> client send notif to update lastLocation
  * FCM_SOS       -> send SOS alert
  * FCM_CONFIG    ->
  * FCM_SUBSCRIBE ->
@@ -20,6 +21,7 @@ enum class EventType(value: String) {
     FCM_TTS("FCM_TTS"),
     FCM_TTS_ERROR("FCM_TTS_ERROR"),
     FCM_LOCATION("FCM_LOCATION"),
+    FCM_LOCATION_UPDATE("FCM_LOCATION_UPDATE"),
     FCM_SOS("FCM_SOS"),
     FCM_CONFIG("FCM_CONFIG"),
     FCM_SUBSCRIBE("FCM_SUBSCRIBE"),

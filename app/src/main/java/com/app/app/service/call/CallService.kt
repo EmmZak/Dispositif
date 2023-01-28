@@ -1,9 +1,12 @@
 package com.app.app.service.call
 
+import android.content.ContextWrapper
+import android.content.Intent
 import android.telecom.Call
 import android.telecom.InCallService
 import android.telecom.VideoProfile
 import android.util.Log
+import androidx.core.net.toUri
 import com.app.app.dto.EventObject
 import com.app.app.enums.EventType
 import org.greenrobot.eventbus.EventBus
@@ -86,6 +89,11 @@ class CallService : InCallService() {
             )
             val o = EventObject(EventType.CALL, data as Map<String, Any>)
             EventBus.getDefault().post(o)
+        }
+
+        fun call(number: String, context: ContextWrapper) {
+            val uri = "tel:$number".toUri()
+            context.startActivity(Intent(Intent.ACTION_CALL, uri))
         }
 
         fun answer() {

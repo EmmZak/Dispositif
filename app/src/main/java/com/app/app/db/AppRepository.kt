@@ -14,17 +14,30 @@ class AppRepository {
     private val TAG = "App Repository manu"
     private val db = Firebase.firestore
 
-    fun findApp() {
-        db.collection(AppConfig.COLLECTION).document(AppConfig.APP_ID).get()
+    fun findApp(): Task<DocumentSnapshot> {
+
+        return db.collection(AppConfig.COLLECTION).document(AppConfig.APP_ID).get()
+                /*
             .addOnSuccessListener { appDoc ->
+                if (appDoc.data == null) {
+                    Log.e(TAG, "appDoc.data is null")
+                    return@addOnSuccessListener
+                }
                 //var a: App? = app.toObject(App)
-                Log.e(TAG, "appDoc data ${appDoc.data}")
+                //Log.e(TAG, "appDoc data ${appDoc.data}")
+                //Log.e(TAG, "appDoc.data.alarms ${appDoc.data!!["alarms"]}")
+                //Log.e(TAG, "appDoc.data.clients ${appDoc.data!!["clients"]}")
+                //Log.e(TAG, "appDoc data.lastLocation ${appDoc.data?.get("lastLocation")}")
+                //Log.e(TAG, "lastLocation ${appDoc.data!!["lastLocation"]}")
+
                 val app = appDoc.toObject(App::class.java)
 
                 if (app != null) {
                     app.uid = appDoc.id
                     Log.e(TAG, "app $app")
                     Log.e(TAG, "app.alarms ${app.alarms}")
+                    Log.e(TAG, "app.clients ${app.clients}")
+                    Log.e(TAG, "app.lastLocation ${app.lastLocation}")
                 } else {
                     Log.e(TAG, "app model is null")
                 }
@@ -32,7 +45,7 @@ class AppRepository {
             .addOnFailureListener {
                 Log.e(TAG, "error while loading app")
                 println("found app $it")
-            }
+            } */
     }
 
     fun findAlarms(): Task<QuerySnapshot> {

@@ -15,16 +15,10 @@ import com.google.android.gms.tasks.CancellationToken
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.android.gms.tasks.Task
 
-class GpsService {
+class GpsService(private var context: Context) {
 
     private val TAG = "GpsService manu"
-    private var context :Context
-    private var fusedLocationClient: FusedLocationProviderClient
-
-    constructor(context: Context) {
-        this.context = context
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
-    }
+    private var fusedLocationClient: FusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context)
 
     /**
      * Return Google Maps url with the location
